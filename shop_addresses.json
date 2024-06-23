@@ -1,0 +1,165 @@
+{
+  "shops": [
+    {
+      "city": "Elcid",
+      "weapon": "0709D10D-0709D115",
+      "armor": "0709D117-0709D125",
+      "spell": "0709D126-0709D12B",
+      "misc": null
+    },
+    {
+      "city": "Sundletan",
+      "weapon": "0709D13F-0709D147",
+      "armor": "0709D149-0709D15B",
+      "spell": "0709D15C-0709D162",
+      "misc": "0709D168-0709D175"
+    },
+    {
+      "city": "Alunze Kingdom",
+      "weapon": "0709D18C-0709D192",
+      "armor": "0709D194-0709D1A4",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Tanbel",
+      "weapon": "0709D1A9-0709D1B1",
+      "armor": "0709D1B3-0709D1C1",
+      "spell": "0709D1C2-0709D1CC",
+      "misc": null
+    },
+    {
+      "city": "Clamento",
+      "weapon": "0709D1F7-0709D1FB",
+      "armor": "0709D1FD-0709D20B",
+      "spell": "0709D20C-0709D216",
+      "misc": null
+    },
+    {
+      "city": "Parcelyte Kingdom",
+      "weapon": "0709D225-0709D229",
+      "armor": "0709D22B-0709D23F",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Merix",
+      "weapon": "0709D263-0709D265",
+      "armor": "0709D267-0709D26C",
+      "spell": "0709D26F-0709D275",
+      "misc": null
+    },
+    {
+      "city": "Bound Kingdom",
+      "weapon": "0709D279-0709D27F",
+      "armor": "0709D281-0709D28F",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Aleyn",
+      "weapon": "0709D2B5-0709D2B9",
+      "armor": "0709D2BB-0709D2C9",
+      "spell": "0709D2CE-0709D2DE",
+      "misc": null
+    },
+    {
+      "city": "Gruberik",
+      "weapon": "0709D2F6-0709D2FA",
+      "armor": "0709D2FC-0709D30C",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Narcysus",
+      "weapon": "0709D320-0709D324",
+      "armor": "0709D326-0709D336",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Karlloon",
+      "weapon": "0709D360-0709D364",
+      "armor": "0709D366-0709D374",
+      "spell": "0709D379-0709D381",
+      "misc": null
+    },
+    {
+      "city": "Treadool",
+      "weapon": "0709D385-0709D38D",
+      "armor": "0709D38F-0709D3A3",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Dankirk Kingdom",
+      "weapon": "0709D473-0709D479",
+      "armor": "0709D47B-0709D487",
+      "spell": "0709D48A-0709D490",
+      "misc": null
+    },
+    {
+      "city": "Auralio Kingdom",
+      "weapon": "0709D494-0709D49A",
+      "armor": "0709D49C-0709D4A8",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Ferim Kingdom",
+      "weapon": "0709D4CA-0709D4D0",
+      "armor": "0709D4D2-0709D4D8",
+      "spell": "0709D4DE0-0709D4E0",
+      "misc": null
+    },
+    {
+      "city": "Treble",
+      "weapon": "0709D4E4-0709D4EC",
+      "armor": "0709D4EE-0709D4F6",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Portravia",
+      "weapon": "0709D53A-0709D542",
+      "armor": "0709D544-0709D54E",
+      "spell": "0709D551-0709D556",
+      "misc": null
+    },
+    {
+      "city": "Eserikto",
+      "weapon": "0709D56E-0709D572",
+      "armor": "0709D574-0709D580",
+      "spell": "0709D583-0709D58A",
+      "misc": null
+    },
+    {
+      "city": "Barnan",
+      "weapon": "0709D58E-0709D596",
+      "armor": "0709D598-0709D5A4",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Durale",
+      "weapon": "0709D5CC-0709D5D4",
+      "armor": "0709D5D6-0709D5E2",
+      "spell": "0709D5E4-0709D5E7",
+      "misc": "0709D5EB-0709D5F7"
+    },
+    {
+      "city": "Preamarl",
+      "weapon": "0709D638-0709D63C",
+      "armor": "0709D63E-0709D647",
+      "spell": null,
+      "misc": null
+    },
+    {
+      "city": "Narvick",
+      "weapon": "0709D665-0709D671",
+      "armor": "0709D673-0709D682",
+      "spell": null,
+      "misc": null
+    }
+  ]
+}

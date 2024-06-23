@@ -1,0 +1,18 @@
+{
+    "snes9x-x64.exe": [
+        {
+            "name": "snes9x-x64",
+            "gold_address": "0xA32D9E",
+            "character_slots": ["0xA32D8F", "0xA32D90", "0xA32D91", "0xA32D92"],
+            "inventory_range": ["0xA32DA1", "0xA32E60"],
+            "scenario_range": ["0xA32C32", "0xA32C37"]
+        },
+        {
+            "name": "snes9x-nwa",
+            "gold_address": "0xE2CF52",
+            "character_slots": ["0xE2CF43", "0xE2CF44", "0xE2CF45", "0xE2CF46"],
+            "inventory_range": ["0xE2CF55", "0xE2D014"],
+            "scenario_range": ["0xE2CDE6", "0xE2CDE7"]
+        }
+    ]
+}
