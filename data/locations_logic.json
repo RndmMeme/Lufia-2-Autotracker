@@ -1,0 +1,168 @@
+{
+    "Alunze Basement": {
+        "access_rules": ["Bomb", "Hammer"]
+        
+    },
+
+    "Ancient Cave": {
+        "access_rules": ["Ancient key"]
+
+    },
+    "North-West Cave": {
+        "access_rules": ["Bomb","Hammer"]
+        
+    },
+    "Ancient Tower": {
+        "access_rules": ["Bomb,Hook,Cloud key","Hammer,Hook,Cloud key"]
+        
+    },
+    "Cave to Bound Kingdom": {
+        "access_rules": ["Bomb,Hook","Hammer,Hook"]
+        
+    },
+    "Capsule Monster Cave": {
+        "access_rules": ["Mermaid Jade"]
+        
+    },
+    "Capsule Monster Shrine": {
+        "access_rules": []
+        
+    },
+    "Dankirk North Dungeon": {
+        "access_rules": ["Bomb,Hook,Dankirk key"]
+        
+    },
+    "Divine Shrine": {
+        "access_rules": ["Heart key,Hook,Hammer"]
+        
+    },
+    "Daos' Shrine": {
+        "access_rules": ["Claire,Lisa,Marie, Engine"]
+        
+    },
+    "Dragon Mountain": {
+        "access_rules": ["Magma key,Hook,Hammer,Fire Arrow,Engine","Magma key,Hook,Hammer,Fire Arrow,Mermaid Jade"]
+        
+    },
+    "Dragon Shrine": {
+        "access_rules": ["Engine"]
+
+    },
+    "Dual Blade Shrine":{
+        "access_rules": ["Mermaid Jade"]
+
+    },
+    "Flower Capsule": {
+        "access_rules": ["Hammer,Hook"]
+        
+    },
+    "Flower Mountain": {
+        "access_rules": ["Hammer,Flower key"]
+        
+    },
+    "Foomy Woods": {
+        "access_rules": []
+        
+    },
+    "Gordovan West Tower": {
+        "access_rules": ["Bomb,Hook,Wind key"]
+        
+    },
+    "Gratze Kingdom": {
+        "access_rules": ["Basement key,Engine,Arrow","Basement key,Engine,Fire Arrow","Basement key,Engine,Hook","Basement key,Mermaid Jade,Arrow","Basement key,Mermaid Jade,Fire Arrow","Basement key,Mermaid Jade,Hook","Bomb,Hook,Dankirk key,Basement key"]
+        
+    },
+    "Karmirno Sealed Tower": {
+        "access_rules": ["Engine"]
+        
+    },
+    "Karlloon North Shrine": {
+        "access_rules": ["Bomb,Hook"]
+        
+    },
+    "Lake Cave": {
+        "access_rules": ["Lake key,Arrow","Lake key,Fire Arrow","Lake key,Hook"]
+        
+    },
+    "Shaia Lab": {
+        "access_rules": []
+        
+    },
+    "Mountain of No Return": {
+        "access_rules": []
+        
+    },
+    "North Dungeon Capsule": {
+        "access_rules": ["Hook"]
+        
+    },
+     "Northern Labyrinth": {
+        "access_rules": ["Bomb,Hook"]
+        
+    },
+    "Northern Lighthouse": {
+        "access_rules": ["Light key"]
+        
+    },
+    "North-East Tower": {
+        "access_rules": ["Hook,Hammer,Trial key"]
+        
+    },
+    "Phantom Mountain": {
+        "access_rules": ["Bomb,Hook,Fire Arrow,Tree key"]
+        
+    },
+    "Ruby Cave Capsule": {
+        "access_rules": ["Bomb","Hammer"]
+        
+    },
+    "Ruby Cave": {
+        "access_rules": ["Ruby key"]
+        
+    },
+    "Shrine of Vengeance": {
+        "access_rules": ["Ghost key,Mermaid Jade,Bomb,Hammer"]
+        
+    },
+    "Shuman Sealed Tower": {
+        "access_rules": ["Engine"]
+        
+    },
+    "Secret Skills Cave": {
+        "access_rules": ["Arrow","Fire Arrow","Hook"]
+        
+    },
+    "Stradah Sealed Tower": {
+        "access_rules": ["Engine"]
+        
+    },
+    "Submarine Cave": {
+        "access_rules": ["Mermaid Jade"]
+        
+    },
+    "Cave to Sundletan": {
+        "access_rules": []
+        
+    },
+    "Tanbel East Tower": {
+        "access_rules": ["Sky key"]
+        
+    },
+    "Tower of Sacrifice": {
+        "access_rules": ["Narcysus key,Hook,Bomb"]
+        
+    },
+    "Tower of Sacrifice Capsule": {
+        "access_rules": ["Narcysus key,Hook,Bomb","Narcysus key,Hook,Hammer"]
+        
+    },
+    "Tower of Truth": {
+        "access_rules": ["Truth key,Hook,Bomb","Truth key,Hook,Hammer"]
+        
+    },
+    "Treasure Sword Shrine": {
+        "access_rules": ["Sword key,Bomb"]
+        
+    }
+    
+}

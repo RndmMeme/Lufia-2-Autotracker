@@ -1,0 +1,124 @@
+{
+    "Door key": {
+   
+        "obtained_value": "0000 0000 0000 0000 0000 0010"
+    },
+    "Shrine key": {
+
+        "obtained_value": "0000 0000 0000 0000 0000 0100"
+    },
+    "Basement key": {
+        
+        "obtained_value": "0000 0010 0000 0000 0000 0000",
+        "image_path":  "scenario_items/Basement key.png"
+	
+    },
+    "Cloud key": {
+        
+        "obtained_value": "0000 0000 0000 0000 1000 0000",
+        "image_path":  "scenario_items/Cloud key.png"
+	
+    },
+    "Dankirk key": {
+        
+        "obtained_value": "0000 0001 0000 0000 0000 0000",
+        "image_path":  "scenario_items/Dankirk key.png"
+	
+    },
+    "Flower key": {
+        
+        "obtained_value": "0000 0000 0000 1000 0000 0000",
+        "image_path":  "scenario_items/Flower key.png"
+	
+    },
+    "Ghost key": {
+        
+        "obtained_value": "0000 0000 0100 0000 0000 0000",
+        "image_path":  "scenario_items/Ghost key.png"
+	
+    },
+    "Heart key": {
+        
+        "obtained_value": "0000 0000 0010 0000 0000 0000",
+        "image_path":  "scenario_items/Heart key.png"
+	
+    },
+    "Lake key": {
+        
+        "obtained_value": "0000 0000 0000 0000 0001 0000",
+        "image_path":  "scenario_items/Lake key.png"
+	
+    },
+    "Light key": {
+        
+        "obtained_value": "0000 0000 0000 0001 0000 0000",
+        "image_path":  "scenario_items/Light key.png"
+	
+    },
+    "Magma key": {
+        
+        "obtained_value": "0000 0000 0001 0000 0000 0000",
+        "image_path":  "scenario_items/Magma key.png"
+	
+    },
+    "Narcysus key": {
+        
+        "obtained_value": "0000 0100 0000 0000 0000 0000",
+        "image_path":  "scenario_items/Narcysus key.png"
+	
+    },
+    "Ruby key": {
+        
+        "obtained_value": "0000 0000 0000 0000 0010 0000",
+        "image_path":  "scenario_items/Ruby key.png"
+	
+    },
+    "Sky key": {
+        
+        "obtained_value": "0000 0000 0000 0000 0000 1000",
+        "image_path":  "scenario_items/Sky key.png"
+	
+    },
+    "Sword key": {
+        
+        "obtained_value": "0000 0000 0000 0010 0000 0000",
+        "image_path":  "scenario_items/Sword key.png"
+	
+    },
+    "Tree key": {
+        
+        "obtained_value": "0000 0000 0000 0100 0000 0000",
+        "image_path":  "scenario_items/Tree key.png"
+	
+    },
+    "Trial key": {
+        
+        "obtained_value": "0000 0000 1000 0000 0000 0000",
+        "image_path":  "scenario_items/Trial key.png"
+	
+    },
+    "Truth key": {
+        
+        "obtained_value": "0000 1000 0000 0000 0000 0000",
+        "image_path":  "scenario_items/Truth key.png"
+	
+    },
+    "Wind key": {
+        
+        "obtained_value": "0000 0000 0000 0000 0100 0000",
+        "image_path":  "scenario_items/Wind key.png"
+
+    },
+    "Mermaid Jade": {
+        
+        "obtained_value": "0001 0000 0000 0000 0000 0000",
+        "image_path":  "scenario_items/Mermaid Jade.png"
+    
+    },	
+    "Engine": {
+        
+        "obtained_value": "0010 0000 0000 0000 0000 0000",
+        "image_path":  "scenario_items/engine.png"
+	
+    }
+}

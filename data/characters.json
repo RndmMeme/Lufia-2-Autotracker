@@ -1,0 +1,83 @@
+{
+    "Maxim": {
+        "image_path": "character/maxim.png",
+        "down_image_path": "character/maxdown.png",
+        "hp_address": ["0xA32ED2", "0xA32ED3"]
+    },
+    "Tia": {
+        "image_path": "character/tia.png",
+        
+        "down_image_path": "character/tiadown.png",
+        "hp_address": ["0xA331CA", "0xA331CB"]
+    },
+    "Selan": {
+        "image_path": "character/selan.png",
+      
+        "down_image_path": "character/selandown.png",
+        "hp_address": ["0xA32F90", "0xA32F91"]
+    },
+    "Guy": {
+        "image_path": "character/guy.png",
+        
+        "down_image_path": "character/guydown.png",
+        "hp_address": ["0xA3304E", "0xA3304F"]
+    },
+    "Artea": {
+        "image_path": "character/arty.png",
+        
+        "down_image_path": "character/artydown.png",
+        "hp_address": ["0xA3310C", "0xA3310D"]
+    },
+    "Lexis": {
+        "image_path": "character/lexis.png",
+      
+        "down_image_path": "character/lexisdown.png",
+        "hp_address": ["0xA33346", "0xA33347"]
+    },
+    "Dekar": {
+        "image_path": "character/dekar.png",
+       
+        "down_image_path": "character/dekardown.png",
+        "hp_address": ["0xA33288", "0xA33289"]
+    },
+    "Marie": {
+        "image_path": "character/marie.png"
+        
+    },
+    "Lisa": {
+        "image_path": "character/lisa.png"
+        
+    },
+    "Claire": {
+        "image_path": "character/clare.png"
+       
+    },
+    "Jelze": {
+       
+        "image_path": "capsules/jelze.png"
+    },
+    "Flash": {
+       
+        "image_path": "capsules/flash.png"
+    },
+    "Gusto": {
+       
+        "image_path": "capsules/gusto.png"
+    },
+    "Zeppy": {
+      
+        "image_path": "capsules/zeppy.png"
+    },
+    "Darbi": {
+       
+        "image_path": "capsules/darbi.png"
+    },
+    "Sully": {
+       
+        "image_path": "capsules/sully.png"
+    },
+    "Blaze": {
+        
+        "image_path": "capsules/blaze.png"
+    }
+}
