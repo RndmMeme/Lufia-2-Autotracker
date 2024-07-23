@@ -3,6 +3,7 @@ import os
 from helpers.file_loader import load_json, load_image
 from pathlib import Path
 import json
+import logging
 
 # Define the base directory as the directory of this script
 BASE_DIR = Path(__file__).resolve().parent
@@ -11,16 +12,28 @@ BASE_DIR = Path(__file__).resolve().parent
 IMAGES_DIR = BASE_DIR / "images"
 DATA_DIR = BASE_DIR / "data"
 
+GOLD_ADDRESS = None
+pointer_base_address = None
+shop_offset = None
+character_slots = None
+inventory_range = None
+scenario_range = None
+
 WIDGET_STORE = {}
 
 json_cache = {}
+
+config = {
+    'base_address': None,
+    'process': None
+}
 
 # Accessible colors
 COLORS = {
     'accessible': 'lightgreen',
     'partly_accessible': 'orange',
     'not_accessible': 'red',
-    'city': 'blue',
+    'city': 'pink',
     'cleared': 'grey'
 }
 
@@ -95,13 +108,13 @@ def load_json_cached(filename):
             json_cache[filename] = data  # Cache the loaded JSON data
             return data
     except json.JSONDecodeError as e:
-        print(f"Error loading JSON from {filename}: {e}")
+        logging.error(f"Error loading JSON from {filename}: {e}")
     except FileNotFoundError:
-        print(f"File not found: {filename}")
+        logging.error(f"File not found: {filename}")
     except PermissionError:
-        print(f"Permission denied for file: {filename}")
+        logging.error(f"Permission denied for file: {filename}")
     except Exception as e:
-        print(f"Unexpected error loading JSON from {filename}: {e}")
+        logging.error(f"Unexpected error loading JSON from {filename}: {e}")
     
     return {}
 
@@ -112,7 +125,6 @@ def resolve_relative_path(base_path, relative_path):
     Resolve the relative path to an absolute path based on the base path.
     """
     resolved_path = os.path.abspath(os.path.join(base_path, relative_path))
-    print(f"Resolved relative path: {relative_path} to {resolved_path}")  # Debugging line
     return resolved_path
 
 def resolve_image_paths(data, base_dir):
@@ -151,8 +163,6 @@ item_spells = load_json_cached(DATA_DIR / "items_spells.json")
 shop_addresses = load_json_cached(DATA_DIR / "shop_addresses.json")
 map_address = os.path.join(IMAGES_DIR / "map", "map.jpg")
 
-print("Loaded item_spells.json content:", json.dumps(item_spells, indent=2))
-print("Loaded shop_addresses.json content:", json.dumps(shop_addresses, indent=2))
 
 # Resolve paths for character images
 resolve_image_paths(characters, IMAGES_DIR )

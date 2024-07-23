@@ -2,6 +2,7 @@
 
 import os
 from shared import load_json_cached, ALWAYS_ACCESSIBLE_LOCATIONS, CITIES, COLORS, DATA_DIR
+import logging
 
 class LocationLogic:
     def __init__(self, script_dir, location_labels, canvas, maidens_images):
@@ -23,13 +24,13 @@ class LocationLogic:
         
         :param obtained_items: A set of items that have been obtained by the player.
         """
-        print("Updating accessible locations based on obtained items...")
+        logging.info("Updating accessible locations based on obtained items...")
         
         for location, logic in self.locations_logic.items():
-            accessible = self.is_location_accessible(logic, obtained_items)
+            accessible = self.is_location_accessible(logic, obtained_items, location)
             self.mark_location(location, accessible)
         
-        print("Accessible locations updated.")
+        logging.info("Accessible locations updated.")
 
     def is_location_accessible(self, logic, obtained_items, location):
         """
@@ -41,8 +42,7 @@ class LocationLogic:
         """
         # Special check for "Daos' Shrine" based on the colored status of all maidens
         if location == "Daos' Shrine":
-            if all(self.maidens_images[maiden]['is_colored'] for maiden in ["Claire", "Lisa", "Marie"]):
-                print("Daos' Shrine is accessible because all maidens are colored.")
+            if all(self.maidens_images[maiden]['is_colored'] for maiden in ["Claire", "Lisa", "Marie"]) and self.scenario_items["engine"]['is_colored']:
                 return True
 
         access_rules = logic.get("access_rules", [])
@@ -51,8 +51,6 @@ class LocationLogic:
             if all(item in obtained_items for item in rule_items):
                 return True
         return False
-    
-
 
     def mark_location(self, location, accessible):
         """
@@ -61,9 +59,9 @@ class LocationLogic:
         :param location: The name of the location to update.
         :param accessible: Boolean indicating whether the location is accessible.
         """
-        dot, label = self.location_labels.get(location, (None, None))
+        dot = self.location_labels.get(location)
         
-        if dot and label:
+        if dot:
             if location in ALWAYS_ACCESSIBLE_LOCATIONS:
                 dot_color = COLORS['accessible']
             elif location in CITIES:
@@ -72,6 +70,4 @@ class LocationLogic:
                 dot_color = COLORS['accessible'] if accessible else COLORS['not_accessible']
 
             self.canvas.itemconfig(dot, fill=dot_color)
-            self.canvas.itemconfig(label, fill="white")
-
-
+            

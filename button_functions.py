@@ -1,98 +1,100 @@
 # button_functions.py
+
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
-from shared import tool_items_bw, tool_items_c, scenario_items_bw, scenario_items_c, ALWAYS_ACCESSIBLE_LOCATIONS, STATE_ORDER, LOCATION_STATES
+from shared import tool_items_bw, tool_items_c, scenario_items_bw, scenario_items_c, ALWAYS_ACCESSIBLE_LOCATIONS, STATE_ORDER, LOCATION_STATES, LOCATION_LOGIC
 from helpers.file_loader import load_image
 from canvas_config import CITIES, update_character_image
 from inventory_scan import CHARACTER_SLOT_ADDRESSES, CHARACTER_BYTE_MAPPING
 from game_tracking import read_memory_with_retry
-from tkinter import filedialog
 import json
 import os
 import datetime
+import logging
+from shop_calc import process_shop_data, process_and_save_shop_data
+import gui_setup
 
-# button_functions.py
+# Ensure the directory exists
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
-def clear_game_state(app):
-    """
-    Resets the game state, clearing all tracked items and resetting UI elements.
-    """
-    print("Clearing game state...")
-    app.obtained_items.clear()
-
-    # Clear tool images on the canvas
-    for tool_name, tool_info in app.tool_images.items():
-        bw_image_path = tool_items_bw[tool_name]["image_path"]
-        new_image = app.load_image_cached(bw_image_path)
-        if new_image:
-            app.tools_canvas.itemconfig(tool_info['position'], image=new_image)
-            tool_info['image'] = new_image
-    
-    # Clear scenario images on the canvas
-    for scenario_name, scenario_info in app.scenario_images.items():
-        bw_image_path = scenario_items_bw[scenario_name]["image_path"]
-        new_image = app.load_image_cached(bw_image_path)
-        if new_image:
-            app.scenario_canvas.itemconfig(scenario_info['position'], image=new_image)
-            scenario_info['image'] = new_image
-
-    # Reset map locations to default inaccessible state
-    for location, (dot, label) in app.location_labels.items():
-        dot_color = "red"
-        if location in ALWAYS_ACCESSIBLE_LOCATIONS:
-            dot_color = "lightgreen"
-        elif location in CITIES:
-            dot_color = "blue"
-        app.canvas.itemconfig(dot, fill=dot_color)
-        app.canvas.itemconfig(label, fill="white")
-
-    # Pause automatic updates after clearing the game state
-    app.auto_update_active = False
-    print("Game state cleared and auto updates paused.")
+# Configure logging
+logging.basicConfig(
+    filename=os.path.join(log_dir, 'app.log'),
+    filemode='w',
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.ERROR
+)
 
 def sync_game_state(app):
     """
     Synchronizes the current game state with the UI, updating all tracked items and resuming automatic tracking.
     """
     try:
-        print("Synchronizing game state...")
-
-        # Ensure the process is attached and the game is loaded
-        if app.process and app.base_address:
-            # Perform a manual inventory scan
-            app.scanner.scan_inventory(app.process, app.base_address, app.obtained_items)
-            app.sscanner.scan_scenario(app.process, app.base_address, app.obtained_items)
-
-        # Update tool images based on the current obtained items
-        for tool_name, tool_info in app.tool_images.items():
-            if tool_name in app.obtained_items:
-                color_image_path = tool_items_c[tool_name]["image_path"]
+        
+        # Delete the old shop_data.json
+        shop_data_path = os.path.join(app.data_dir, 'shop_data.json')
+        try:
+            if os.path.exists(shop_data_path):
+                print(f"Deleting existing shop_data.json at {shop_data_path}")
+                os.remove(shop_data_path)
             else:
-                color_image_path = tool_items_bw[tool_name]["image_path"]
-            new_image = app.load_image_cached(color_image_path)
+                print(f"No existing shop_data.json found at {shop_data_path}")
+        except Exception as e:
+            logging.error(f"Error deleting shop_data.json: {e}")
+            print(f"Error deleting shop_data.json: {e}")
+
+        # Re-run shop calculations to read the current shop table
+        print("Re-running shop calculations...")
+        process_shop_data(app)
+
+        # Save the re-read shop data
+        print("Saving new shop_data.json...")
+        process_and_save_shop_data(app, shop_data_path)
+        
+        """
+        Resets the game state, clearing all tracked items and resetting UI elements.
+        """
+        app.obtained_items.clear()
+
+        # Clear tool images on the canvas
+        for tool_name, tool_info in app.tool_images.items():
+            bw_image_path = tool_items_bw[tool_name]["image_path"]
+            new_image = app.load_image_cached(bw_image_path)
             if new_image:
                 app.tools_canvas.itemconfig(tool_info['position'], image=new_image)
                 tool_info['image'] = new_image
-
-        # Update scenario images based on the current obtained items
+    
+        # Clear scenario images on the canvas
         for scenario_name, scenario_info in app.scenario_images.items():
-            if scenario_name in app.obtained_items:
-                color_image_path = scenario_items_c[scenario_name]["image_path"]
-            else:
-                color_image_path = scenario_items_bw[scenario_name]["image_path"]
-            new_image = app.load_image_cached(color_image_path)
+            bw_image_path = scenario_items_bw[scenario_name]["image_path"]
+            new_image = app.load_image_cached(bw_image_path)
             if new_image:
                 app.scenario_canvas.itemconfig(scenario_info['position'], image=new_image)
                 scenario_info['image'] = new_image
 
+        # Update map locations based on the current state
+        for location, dot in app.location_labels.items():
+            current_color = app.canvas.itemcget(dot, "fill")
+            if current_color == "grey":
+                continue  # Skip locations that are already marked as cleared
 
-        # Optionally, update the map based on the obtained tools
-        app.update_map_based_on_tools()
+            dot_color = "red"
+            if location in ALWAYS_ACCESSIBLE_LOCATIONS:
+                dot_color = "lightgreen"
+            elif location in CITIES:
+                dot_color = "pink"
+            elif location in app.obtained_items:
+                dot_color = "lightgreen"
+            elif any(item in app.obtained_items for item in LOCATION_LOGIC.get(location, {}).get("access_rules", [])):
+                dot_color = "orange"
 
-        print("Game state synchronized.")
+            app.canvas.itemconfig(dot, fill=dot_color)
+
     except Exception as e:
-        print(f"Error during game sync: {e}")
+        logging.error(f"Error during game sync: {e}")
     finally:
         # Resume automatic updates after manual sync
         app.resume_automatic_updates()
@@ -105,11 +107,9 @@ def update_obtained_items(app, item_name, canvas, item_dict, color_images_dict):
     if item_name in app.obtained_items:
         app.obtained_items.remove(item_name)
         image_path = item_dict[item_name]["image_path"]
-        print(f"Item removed: {item_name}")
     else:
         app.obtained_items.add(item_name)
         image_path = color_images_dict[item_name]["image_path"]
-        print(f"Item added: {item_name}")
 
     new_image = app.load_image_cached(image_path)
     if new_image:
@@ -119,12 +119,10 @@ def update_obtained_items(app, item_name, canvas, item_dict, color_images_dict):
 
     # Update the map after changing an item's state
     app.update_map_based_on_tools()
-    print(f"Updated state for {item_name}.")
 
 def handle_tool_click(app, tool_name):
-    print(f"Tool clicked: {tool_name}")
     app.manual_input_active = True  # Disable automatic updates during manual input
-
+    
     if tool_name in app.obtained_items:
         app.obtained_items.remove(tool_name)
         new_image_path = tool_items_bw[tool_name]["image_path"]
@@ -136,7 +134,6 @@ def handle_tool_click(app, tool_name):
     app.update_map_based_on_tools()
 
 def handle_scenario_click(app, scenario_name):
-    print(f"Scenario item clicked: {scenario_name}")
     app.manual_input_active = True  # Disable automatic updates during manual input
 
     if scenario_name in app.obtained_items:
@@ -150,7 +147,6 @@ def handle_scenario_click(app, scenario_name):
     app.update_map_based_on_tools()
 
 def handle_dot_click(app, location):
-    print(f"Location dot clicked: {location}")
     app.manual_input_active = True  # Disable automatic updates during manual input
 
     current_state = app.location_states.get(location, "not_accessible")
@@ -163,8 +159,6 @@ def handle_dot_click(app, location):
         new_color = LOCATION_STATES[next_state]
         app.canvas.itemconfig(dot, fill=new_color)
         app.canvas.itemconfig(label, fill=new_color)
-
-    print(f"Location {location} updated to {next_state} (color: {new_color}).")
 
 def update_tool_image(app, tool_name, image_path):
     new_image = app.load_image_cached(image_path)
@@ -189,90 +183,41 @@ def update_scenario_image(app, scenario_name, image_path):
         app.scenario_canvas.images.append(new_image)
 
 def save_game_state(app):
-    try:
-        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        save_file_path = filedialog.asksaveasfilename(defaultextension=".json",
-                                                      initialfile=f"Lufia2Tracker_Save_{now}.json",
-                                                      filetypes=[("JSON files", "*.json")])
-        if not save_file_path:
-            return  # User cancelled the save dialog
+    """
+    Saves the state of the application.
+    """
+    game_state = {
+        "tools_canvas": get_canvas_content(app.tools_canvas),
+        "scenario_canvas": get_canvas_content(app.scenario_canvas),
+        "item_canvas": get_canvas_content(app.item_canvas),
+        "hints_content": app.hints_canvas.get("1.0", tk.END),  # Save the text content
+        "characters_canvas": get_canvas_content(app.characters_canvas),
+        "maidens_canvas": get_canvas_content(app.maidens_canvas),
+        "map_state": get_map_state(app)  # Save the map state
+    }
 
-        save_data = {
-            "obtained_items": list(app.obtained_items),
-            "manual_toggles": app.manual_toggles,
-            "tabbed_interface_content": get_tabbed_interface_content(app),
-            "hints": app.tabbed_interface.nametowidget(app.tabbed_interface.tabs()[-1]).hints_text.get("1.0", tk.END)  # Save the hints text
-        }
-
-        with open(save_file_path, 'w') as save_file:
-            json.dump(save_data, save_file, indent=2)
-
-        print(f"Game state saved to {save_file_path}")
-    except Exception as e:
-        print(f"Error saving game state: {e}")
-
+    with open("game_state.json", "w") as f:
+        json.dump(game_state, f)
 
 def load_game_state(app):
+    """
+    Loads the state of the application.
+    """
     try:
-        load_file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
-        if not load_file_path:
-            return  # User cancelled the load dialog
+        with open("game_state.json", "r") as f:
+            game_state = json.load(f)
 
-        with open(load_file_path, 'r') as load_file:
-            load_data = json.load(load_file)
+        restore_canvas_content(app.tools_canvas, game_state["tools_canvas"])
+        restore_canvas_content(app.scenario_canvas, game_state["scenario_canvas"])
+        restore_canvas_content(app.item_canvas, game_state["item_canvas"])
+        app.hints_canvas.delete("1.0", tk.END)
+        app.hints_canvas.insert("1.0", game_state["hints_content"])
+        restore_canvas_content(app.characters_canvas, game_state["characters_canvas"])
+        restore_canvas_content(app.maidens_canvas, game_state["maidens_canvas"])
+        restore_map_state(app, game_state["map_state"])  # Restore the map state
 
-        # Restore the obtained items and manual toggles
-        app.obtained_items = set(load_data.get("obtained_items", []))
-        app.manual_toggles = load_data.get("manual_toggles", {})
-
-        # Restore the tabbed interface content
-        set_tabbed_interface_content(app, load_data.get("tabbed_interface_content", {}))
-
-        # Restore the hints text
-        hints_text_widget = app.tabbed_interface.nametowidget(app.tabbed_interface.tabs()[-1]).hints_text
-        hints_text_widget.delete("1.0", tk.END)
-        hints_text_widget.insert(tk.END, load_data.get("hints", ""))
-
-        # Sync the game state to update UI based on the loaded data
-        sync_game_state(app)
-
-        print(f"Game state loaded from {load_file_path}.")
     except Exception as e:
-        print(f"Error loading game state: {e}")
-
-
-
-def get_tabbed_interface_content(app):
-    """
-    Collects the content of the tabbed interface for saving.
-    """
-    tab_content = {}
-
-    # Access the notebook from the left_frame
-    notebook = app.tabbed_interface.winfo_children()[0]  # The notebook should be the first child of the frame
-
-    if isinstance(notebook, ttk.Notebook):
-        for tab_id in notebook.tabs():
-            tab_title = notebook.tab(tab_id, "text")
-            tab_frame = notebook.nametowidget(tab_id)
-            tab_data = get_tab_data(tab_frame)
-            tab_content[tab_title] = tab_data
-    else:
-        print(f"Unexpected type for tabbed interface content: {type(notebook)}")
-
-    return tab_content
-
-def get_tab_data(tab_frame):
-    """
-    Extracts the content from a given tab frame.
-    """
-    content = []
-    for widget in tab_frame.winfo_children():
-        if isinstance(widget, tk.Canvas):
-            canvas_content = get_canvas_content(widget)
-            content.append({"type": "canvas", "content": canvas_content})
-        # Add more types of widgets if needed
-    return content
+        logging.error(f"Error loading game state: {e}")
 
 def get_canvas_content(canvas):
     """
@@ -286,41 +231,11 @@ def get_canvas_content(canvas):
         items.append({"type": item_type, "coords": item_coords, "options": item_options})
     return items
 
-
-
-def set_tabbed_interface_content(app, content):
+def clear_canvas(canvas):
     """
-    Restores the content of the tabbed interface from the saved state.
+    Clears all items from a canvas.
     """
-    notebook = app.tabbed_interface.nametowidget(app.tabbed_interface.winfo_children()[0])
-    print("Restoring tabbed interface content...")
-    for tab_title, items in content.items():
-        try:
-            tab_id = notebook.index(tab_title)
-            tab_frame = notebook.nametowidget(notebook.tabs()[tab_id])
-            scrollable_frame = tab_frame.winfo_children()[0].winfo_children()[0]  # Access the inner scrollable frame
-            clear_frame(scrollable_frame)
-
-            for i, item in enumerate(items):
-                tk.Label(scrollable_frame, text=item, background="black", foreground="white").grid(row=i, column=0, padx=5, pady=5)
-        except Exception as e:
-            print(f"Error restoring tab '{tab_title}': {e}")
-
-def clear_frame(frame):
-    """
-    Clears all widgets from a frame.
-    """
-    for widget in frame.winfo_children():
-        widget.destroy()
-
-def restore_tab_data(tab_frame, content):
-    """
-    Restores the content of a given tab frame.
-    """
-    for widget_data in content:
-        if widget_data["type"] == "canvas":
-            restore_canvas_content(tab_frame, widget_data["content"])
-        # Add more types of widgets if needed
+    canvas.delete("all")
 
 def restore_canvas_content(canvas, items):
     """
@@ -332,10 +247,34 @@ def restore_canvas_content(canvas, items):
         item_options = item["options"]
 
         if item_type == "text":
-            canvas.create_text(item_coords, **item_options)
+            canvas.create_text(*item_coords, **item_options)
         elif item_type == "rectangle":
-            canvas.create_rectangle(item_coords, **item_options)
+            canvas.create_rectangle(*item_coords, **item_options)
+        elif item_type == "oval":
+            canvas.create_oval(*item_coords, **item_options)
+        elif item_type == "image":
+            # Restore image handling here
+            pass
         # Add handling for other item types as needed
+
+def get_map_state(app):
+    """
+    Extracts the state of the map (locations and their colors).
+    """
+    map_state = {}
+    for location, dot in app.location_labels.items():
+        color = app.canvas.itemcget(dot, "fill")
+        map_state[location] = color
+    return map_state
+
+def restore_map_state(app, map_state):
+    """
+    Restores the state of the map (locations and their colors).
+    """
+    for location, color in map_state.items():
+        if location in app.location_labels:
+            dot = app.location_labels[location]
+            app.canvas.itemconfig(dot, fill=color)
 
 # Ensure these functions are accessible
 __all__ = ["save_game_state", "load_game_state", "clear_game_state", "sync_game_state", "handle_tool_click", "handle_scenario_click", "handle_dot_click"]

@@ -8,58 +8,166 @@ import sys
 import pymem
 import time
 from pathlib import Path
+import logging
+import json
 
 # Import necessary functions and modules
 from helpers.file_loader import load_image
 from helpers.memory_utils import read_memory_with_retry, check_game_running, is_process_running, read_memory
 from gui_setup import setup_interface, setup_canvases, setup_scanners
-from shared import LOCATIONS, LOCATION_LOGIC, CITIES, tool_items_bw, scenario_items_bw, item_to_location, characters_bw, ALWAYS_ACCESSIBLE_LOCATIONS, load_json_cached, generate_item_to_location_mapping, resolve_relative_path, BASE_DIR, IMAGES_DIR, DATA_DIR
-from canvas_config import update_character_image, map_address, setup_tools_canvas, setup_scenario_canvas, setup_characters_canvas, create_tabbed_interface, setup_maidens_canvas
+from shared import LOCATIONS, LOCATION_LOGIC, CITIES, tool_items_bw, scenario_items_bw, item_to_location, characters_bw, ALWAYS_ACCESSIBLE_LOCATIONS, load_json_cached, generate_item_to_location_mapping, resolve_relative_path, BASE_DIR, IMAGES_DIR, DATA_DIR, shop_addresses, config, GOLD_ADDRESS, pointer_base_address, shop_offset
+from canvas_config import update_autoscan_label, update_character_image, map_address, setup_tools_canvas, setup_scenario_canvas, setup_characters_canvas, setup_maidens_canvas, setup_item_canvas, setup_hints_canvas
 from event_handlers import handle_tool_click, handle_scenario_click, handle_dot_click
-from game_tracking import track_game
+from game_tracking import track_game, show_error_window
 from logic import LocationLogic
+from shop_calc import process_shop_data, process_and_save_shop_data
+from inventory_scan import initialize_shared_variables
+from button_functions import sync_game_state
 
-# Constants
-INVENTORY_START = 0xA32DA1
-INVENTORY_END = 0xA32E60
-SCENARIO_START = 0xA32C32
-SCENARIO_END = 0xA32C37
+# Ensure the directory exists
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
+# Configure logging
+logging.basicConfig(
+    filename=os.path.join(log_dir, 'app.log'),
+    filemode='w',
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG
+)
+
+# Load emulator addresses
+EMULATOR_CONFIG_PATH = os.path.join(DATA_DIR, 'emulator_addresses.json')
+
+def read_rom_start_address(process, pointer_base_address):
+    try:
+        raw_address = process.read_bytes(pointer_base_address, 4)
+        if raw_address:
+            reversed_bytes = raw_address[::-1]
+            
+            return reversed_bytes.hex()
+            
+        else:
+            raise ValueError("Failed to read ROM start address.")
+    except Exception as e:
+        logging.error(f"Error reading ROM start address: {e}")
+        return None
+
+def verify_shop_pointer(process, shop_pointer):
+    try:
+        address_int = int(shop_pointer, 16)
+        verification_bytes = process.read_bytes(address_int, 4)
+        if verification_bytes:
+            valid = verification_bytes.hex() == '029c0002'
+            return valid
+        else:
+            return False
+    except Exception as e:
+        logging.error(f"Error verifying shop table base address at {shop_pointer}: {e}")
+        return False
+
+def create_emulator_config():
+    try:
+        if is_process_running("snes9x-x64.exe"):
+            process = pymem.Pymem("snes9x-x64.exe")
+            base_address = process.process_base.lpBaseOfDll
+
+            with open(EMULATOR_CONFIG_PATH, 'r') as file:
+                emulator_configs = json.load(file)
+
+            configs = emulator_configs.get("snes9x-x64.exe", [])
+            for config in configs:
+                pointer_base_address = int(config['pointer_base_address'], 16) + base_address
+                rom_start_address = read_rom_start_address(process, pointer_base_address)
+                if rom_start_address:
+                    shop_pointer = int(rom_start_address, 16) + int(config['shop_offset'], 16)
+                    if verify_shop_pointer(process, hex(shop_pointer)):
+                        with open(os.path.join(DATA_DIR, 'current_emulator_config.json'), 'w') as f:
+                            json.dump(config, f)
+                        return config
+
+        if emulator_configs:
+            import shared
+            shared.GOLD_ADDRESS = int(emulator_configs['gold_address'], 16)
+            shared.pointer_base_address = int(emulator_configs['pointer_base_address'], 16)
+            shared.shop_offset = int(emulator_configs['shop_offset'], 16)
+            shared.character_slots = [int(slot, 16) for slot in emulator_configs['character_slots']]
+            shared.inventory_range = [int(addr, 16) for addr in emulator_configs['inventory_range']]
+            shared.scenario_range = [int(addr, 16) for addr in emulator_configs['scenario_range']]
+            return emulator_configs
+
+        logging.error("No matching emulator configuration found.")
+    except Exception as e:
+        logging.error(f"Error creating emulator configuration: {e}")
+    return None
 
 class Lufia2TrackerApp:
-    GOLD_ADDRESS = 0xA32D9E
-
     def __init__(self, root):
-        print("Initializing Lufia2TrackerApp...")
         self.root = root
         self.root.title("Lufia 2 Auto Tracker")
+        self.pointer_base_address = None
+        self.shop_offset = None
+        self.shop_pointer_verified = False
+        self.shop_addresses = None  # Initialize shop addresses
 
-        # Use constants from config
+        # Initialize essential attributes
         self.base_dir = BASE_DIR
         self.images_dir = IMAGES_DIR
         self.data_dir = DATA_DIR
-
         self.script_dir = Path(__file__).parent
-        
-        self.entries = {
-            "Shop Item": [],
-            "Spells": [],
-            "Thief": []
-        }
+        self.entries = {"Shop Item": [], "Spells": [], "Thief": []}
+        self.image_cache = {}  # Image cache to avoid repeated loading
 
-        # Set initial window size and layout configuration
-        self.root.geometry("728x978")
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_columnconfigure(1, weight=1)
-        self.root.grid_rowconfigure(0, minsize=1500)
+        # Load emulator configuration
+        self.emulator_config = create_emulator_config()
+        if self.emulator_config is None:
+            show_error_window(self)
+            return
+
+        # Now load the current emulator configuration file
+        config_path = os.path.join(DATA_DIR, 'current_emulator_config.json')
+        with open(config_path, 'r') as f:
+            emulator_config = json.load(f)
+
+        self.pointer_base_address = int(emulator_config['pointer_base_address'], 16)
+        self.shop_offset = int(emulator_config['shop_offset'], 16)
+        self.GOLD_ADDRESS = int(emulator_config['gold_address'], 16)
+        self.character_slots = [int(slot, 16) for slot in emulator_config['character_slots']]
+        self.inventory_range = [int(addr, 16) for addr in emulator_config['inventory_range']]
+        self.scenario_range = [int(addr, 16) for addr in emulator_config['scenario_range']]
+
+        import shared
+        shared.GOLD_ADDRESS = self.GOLD_ADDRESS
+        shared.pointer_base_address = self.pointer_base_address
+        shared.shop_offset = self.shop_offset
+        shared.character_slots = self.character_slots
+        shared.inventory_range = self.inventory_range
+        shared.scenario_range = self.scenario_range
+
+        # Initialize shared variables in inventory_scan.py
+        initialize_shared_variables()
+
+        # Initialize essential attributes
+        self.base_dir = BASE_DIR
+        self.images_dir = IMAGES_DIR
+        self.data_dir = DATA_DIR
+        self.script_dir = Path(__file__).parent
+        self.entries = {"Shop Item": [], "Spells": [], "Thief": []}
+        self.image_cache = {}  # Image cache to avoid repeated loading
+        self.retrieve_base_address()  # Ensure process is set up here before it's needed elsewhere
+
+        if self.base_address is None:
+            show_error_window(self)
+            return  # Exit the initialization if base address is not valid
 
         # Initialize essential attributes
         self.map_address = os.path.join(IMAGES_DIR / "map", "map.jpg")
         self.LOCATIONS = LOCATIONS
+        
+        shop_addresses_path = os.path.join(self.data_dir, 'shop_addresses.json')
 
-
-        # Create the tabbed interface and store tab references
-        self.tabbed_interface, self.tabs = create_tabbed_interface(self.root)
+        self.shop_addresses, self.shop_items = process_shop_data(self)
 
         self.inventory = {}
         self.previous_gold = None
@@ -73,8 +181,6 @@ class Lufia2TrackerApp:
         self.location_states = {location: "not_accessible" for location in LOCATIONS.keys()}
         self.location_labels_visible = True
         self.city_labels_visible = True
-        self.process = None
-        self.base_address = None
         self.tool_items_bw = {}
         self.tool_items_c = {}
         self.scenario_items_bw = {}
@@ -96,13 +202,6 @@ class Lufia2TrackerApp:
         self.auto_update_active = True
         self.full_scan_due = True
 
-        # Retrieve the base address
-        self.retrieve_base_address()
-
-        if self.base_address is None:
-            print("Error: base_address is None. The tracker cannot proceed without a valid base address.")
-            return  # Exit the initialization if base address is not valid
-
         # Initialize auto update flag
         self.auto_update_active = True
 
@@ -117,15 +216,21 @@ class Lufia2TrackerApp:
 
         # Initialize canvases here
         self.setup_canvases()
+        
+        # Bind the click event to autoscan_label to trigger the sync callback
+        self.autoscan_label.bind("<Button-1>", self.sync_game_state_callback)
 
         # Setup tools and scenario canvases
         tools_keys = list(tool_items_bw.keys())
         self.tools_canvas, self.tool_images = setup_tools_canvas(root, tools_keys, self.on_tool_click, self.image_cache)
-
         scenario_keys = list(scenario_items_bw.keys())
         self.scenario_canvas, self.scenario_images = setup_scenario_canvas(root, scenario_keys, item_to_location, self.on_scenario_click, self.image_cache)
-
         self.characters_canvas, self.character_images = setup_characters_canvas(self.root, self.characters, self.image_cache, self)
+
+        # Setup maidens canvas with the check function
+        self.maidens_canvas, self.maidens_images = setup_maidens_canvas(
+            root, self.characters, characters_bw, self.image_cache, self.check_all_maidens_colored
+        )
 
         # Populate initial canvases with black and white images
         self.populate_initial_canvases()
@@ -133,33 +238,26 @@ class Lufia2TrackerApp:
         # Setup scanners
         self.setup_scanners()
 
-        # Setup maidens canvas with the check function
-        self.maidens_canvas, self.maidens_images = setup_maidens_canvas(
-            root, self.characters, characters_bw, self.image_cache, self.check_all_maidens_colored
-        )
-
         # Initialize location logic
         self.logic = LocationLogic(self.script_dir, self.location_labels, self.canvas, self.maidens_images)
 
-        # Create tabbed interface
-        self.tabbed_interface = create_tabbed_interface(self.root)
-
         # Start tracker thread
         self.start_tracker_thread()
+        
+        # Process and save shop data to JSON
+        self.process_and_save_shop_data_to_json()
 
     def retrieve_base_address(self):
-        """
-        Retrieve the base address of the game process.
-        """
         try:
             if is_process_running("snes9x-x64.exe"):
                 self.process = pymem.Pymem("snes9x-x64.exe")
                 self.base_address = self.process.process_base.lpBaseOfDll
-                print(f"Attached to snes9x-x64.exe at base address 0x{self.base_address:X}")
+                config['base_address'] = self.base_address
+                config['process'] = self.process
             else:
-                print("snes9x-x64.exe is not running.")
+                logging.error("snes9x-x64.exe is not running.")
         except pymem.exception.ProcessNotFound:
-            print("Process not found. Make sure the game is running.")
+            logging.error("Process not found. Make sure the game is running.")
             self.base_address = None
 
     def check_all_maidens_colored(self):
@@ -172,30 +270,23 @@ class Lufia2TrackerApp:
         )
 
         if all_colored:
-            print("All maidens are colored. Updating 'Daos' Shrine' to accessible.")
             self.logic.mark_location("Daos' Shrine", True)  # Directly mark as accessible
-        else:
-            print("Not all maidens are colored yet.")
 
     def setup_interface(self):
         setup_interface(self)
 
     def load_data(self):
-        print(f"Loading locations_logic.json from: {self.data_dir / 'locations_logic.json'}")
-        print(f"Loading characters.json from: {self.data_dir / 'characters.json'}")
-
         self.locations_logic = load_json_cached(self.data_dir / "locations_logic.json")
         self.characters = load_json_cached(self.data_dir / "characters.json")
-        self.characters_bw = load_json_cached(self.data_dir / "characters_bw.json")  # Add this line
+        self.characters_bw = load_json_cached(self.data_dir / "characters_bw.json")
         self.item_to_location = generate_item_to_location_mapping(self.locations_logic)
-        print("Data loaded successfully.")
 
     def setup_canvases(self):
         setup_canvases(self)
 
     def setup_scanners(self):
         if self.base_address is None:
-            print("Error: base_address is None during scanner setup.")
+            logging.error("Error: base_address is None during scanner setup.")
             return
 
         setup_scanners(self)
@@ -208,39 +299,36 @@ class Lufia2TrackerApp:
     def on_tool_click(self, tool_name):
         self.handle_manual_input()
         handle_tool_click(self, tool_name)
+        update_autoscan_label(self.autoscan_label, False)
 
     def on_scenario_click(self, scenario_name):
         self.handle_manual_input()
         handle_scenario_click(self, scenario_name)
+        update_autoscan_label(self.autoscan_label, False)
 
     def on_dot_click(self, location):
-        print(f"Location dot clicked: {location}")
-
-        dot, label = self.location_labels.get(location, (None, None))
-        if dot and label:
+        dot = self.location_labels.get(location)
+        if dot:
             current_color = self.canvas.itemcget(dot, "fill")
             next_color = self.get_next_state_color(current_color)
             self.canvas.itemconfig(dot, fill=next_color)
-            self.canvas.itemconfig(label, fill="white")
             self.manually_updated_locations[location] = next_color
-
-        print(f"Location {location} manually set to {next_color}.")
 
     def get_next_state_color(self, current_color):
         color_order = ["red", "orange", "lightgreen", "grey"]
         next_index = (color_order.index(current_color) + 1) % len(color_order)
         return color_order[next_index]
+    
 
     def sync_game_state(self):
-        print("Sync button pressed. Syncing game state and resuming automatic updates.")
         self.resume_automatic_updates()
 
     def handle_manual_input(self):
         self.manual_input_active = True
+        self.auto_update_active = False
         print("Manual input detected. Pausing automatic updates.")
 
     def populate_initial_canvases(self):
-        print("Populating tools canvas with black and white images...")
         for tool_name, tool_info in self.tool_images.items():
             image_path = tool_items_bw[tool_name]["image_path"]
             new_image = self.load_image_cached(image_path)
@@ -249,7 +337,6 @@ class Lufia2TrackerApp:
                 self.tools_canvas.itemconfig(position, image=new_image)
                 tool_info['image'] = new_image
 
-        print("Populating scenario canvas with black and white images...")
         for scenario_name, scenario_info in self.scenario_images.items():
             image_path = scenario_items_bw[scenario_name]["image_path"]
             new_image = self.load_image_cached(image_path)
@@ -258,8 +345,6 @@ class Lufia2TrackerApp:
                 self.scenario_canvas.itemconfig(position, image=new_image)
                 scenario_info['image'] = new_image
 
-        print("Canvases populated with initial black and white images.")
-
     def load_image_cached(self, image_path):
         if image_path not in self.image_cache:
             new_image = load_image(image_path)
@@ -267,10 +352,7 @@ class Lufia2TrackerApp:
         return self.image_cache[image_path]
 
     def update_character(self, name, hp):
-        print(f"Updating character: {name}, HP: {hp}")
-
         if name in self.manual_toggles:
-            print(f"Skipping update for manually toggled character: {name}")
             return  # Skip updates for manually toggled characters
 
         is_active = hp > 0  # Consider a character active if their HP is greater than 0
@@ -282,14 +364,11 @@ class Lufia2TrackerApp:
         # Update the character image based on activity status
         update_character_image(self.characters_canvas, self.character_images, name, is_active)
 
-    
     def update_map_based_on_tools(self):
-        print("Updating map based on current tool states...")
         obtained_items = self.obtained_items
 
         for location, logic in LOCATION_LOGIC.items():
             if location in self.manually_updated_locations:
-                print(f"Skipping update for manually updated location: {location}")
                 continue
 
             access_rules = logic.get("access_rules", [])
@@ -305,9 +384,7 @@ class Lufia2TrackerApp:
                 else:
                     dot_color = "lightgreen" if fully_accessible else "orange" if partially_accessible else "red"
                 self.canvas.itemconfig(dot, fill=dot_color)
-                self.canvas.itemconfig(label, fill="white")
-
-        print("Map update complete.")
+                
 
     def is_game_running(self, process, base_address):
         return check_game_running(self, process, base_address)
@@ -323,34 +400,27 @@ class Lufia2TrackerApp:
         self.tracker_thread.join()
         self.root.destroy()
 
-    def toggle_location_labels(self):
-        self.location_labels_visible = not self.location_labels_visible
-        for location, label in self.location_labels.items():
-            if location not in CITIES:
-                dot, text = label
-                self.canvas.itemconfig(text, state=tk.NORMAL if self.location_labels_visible else tk.HIDDEN)
-
-    def toggle_city_labels(self):
-        self.city_labels_visible = not self.city_labels_visible
-        for location, label in self.location_labels.items():
-            if location in CITIES:
-                dot, text = label
-                self.canvas.itemconfig(text, state=tk.NORMAL if self.city_labels_visible else tk.HIDDEN)
-
     def resume_automatic_updates(self):
         self.manual_input_active = False
-        print("Resuming automatic updates after manual input. Syncing game state.")
+        self.auto_update_active = True
         
         if self.stop_event.is_set() or not self.tracker_thread.is_alive():
             self.stop_event.clear()
-            self.start_tracker_thread()        
-
-
+            self.start_tracker_thread()
+     
+    def process_and_save_shop_data_to_json(self):
+        json_path = os.path.join(self.data_dir, 'shop_data.json')
+        adjusted_shop_data, shop_items = process_and_save_shop_data(self, json_path)
+        
+    def sync_game_state_callback(self, event=None):
+        sync_game_state(self)    
+            
 if __name__ == "__main__":
     root = tk.Tk()
     try:
-        print("Starting Lufia2TrackerApp...")
         app = Lufia2TrackerApp(root)
         root.mainloop()
     except Exception as e:
-        print(f"Unhandled exception: {e}")
+        logging.error(f"Unhandled exception: {e}")
+        with open("error_log.txt", "a") as error_file:
+            error_file.write(f"Unhandled exception: {e}\n")

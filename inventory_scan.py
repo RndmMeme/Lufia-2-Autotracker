@@ -1,18 +1,29 @@
 # inventory_scan.py
 
 import os
-from shared import LOCATION_LOGIC, load_json_cached, DATA_DIR
+from shared import LOCATION_LOGIC, load_json_cached, DATA_DIR, GOLD_ADDRESS, character_slots, inventory_range, scenario_range
 from helpers.file_loader import load_image
 from helpers.memory_utils import read_memory
 from canvas_config import load_image_cached, update_character_image
+import logging
 
-# Memory addresses for character slots
-CHARACTER_SLOT_ADDRESSES = [
-    0xA32D8F,
-    0xA32D90,
-    0xA32D91,
-    0xA32D92
-]
+
+# Using the imported variables from shared.py
+CHARACTER_SLOT_ADDRESSES = None
+INVENTORY_START = None
+INVENTORY_END = None
+SCENARIO_START = None
+SCENARIO_END = None
+
+def initialize_shared_variables():
+    global CHARACTER_SLOT_ADDRESSES, INVENTORY_START, INVENTORY_END, SCENARIO_START, SCENARIO_END
+    from shared import character_slots, inventory_range, scenario_range
+    
+    CHARACTER_SLOT_ADDRESSES = character_slots
+    INVENTORY_START = inventory_range[0]
+    INVENTORY_END = inventory_range[1]
+    SCENARIO_START = scenario_range[0]
+    SCENARIO_END = scenario_range[1]
 
 # Mapping of byte values to character names
 CHARACTER_BYTE_MAPPING = {
@@ -35,9 +46,6 @@ class InventoryScanner:
         self.location_labels = location_labels
 
     def scan_inventory(self, process, base_address, obtained_items):
-        INVENTORY_START = 0xA32DA1
-        INVENTORY_END = 0xA32E60
-
         new_obtained_items = set()
         for tool_name, tool_info in self.tool_items.items():
             obtained_value = int(tool_info["obtained_value"], 16)
@@ -80,10 +88,10 @@ class InventoryScanner:
             self.app.root.after(0, self.mark_location_accessible, location)
 
     def mark_location_accessible(self, location):
-        dot, label = self.location_labels.get(location, (None, None))
-        if dot and label:
+        dot = self.location_labels.get(location)
+        if dot:
             self.app.canvas.itemconfig(dot, fill="lightgreen")
-            self.app.canvas.itemconfig(label, fill="lightgreen")
+            
 
 class ScenarioScanner:
     def __init__(self, app, scenario_canvas, scenario_images, location_labels):
@@ -94,9 +102,6 @@ class ScenarioScanner:
         self.location_labels = location_labels
 
     def scan_scenario(self, process, base_address, obtained_items):
-        SCENARIO_START = 0xA32C32
-        SCENARIO_END = 0xA32C37
-
         memory_value = read_memory(process, base_address + SCENARIO_START, SCENARIO_END - SCENARIO_START + 1)
         reversed_memory_value = memory_value[::-1]
         binary_string = ''.join(f'{byte:08b}' for byte in reversed_memory_value)
@@ -112,7 +117,6 @@ class ScenarioScanner:
                     if len(obtained_value_bin) >= obtained_index:
                         if obtained_value_bin[-obtained_index] == '1' and scenario_name not in obtained_items:
                             new_obtained_items.add(scenario_name)
-                            print(f"{scenario_name} item obtained")
                             self.app.root.after(0, self.replace_scenario_image, scenario_name)
 
         obtained_items.update(new_obtained_items)
@@ -142,10 +146,10 @@ class ScenarioScanner:
             self.app.root.after(0, self.mark_location_accessible, location)
 
     def mark_location_accessible(self, location):
-        dot, label = self.location_labels.get(location, (None, None))
-        if dot and label:
+        dot = self.location_labels.get(location)
+        if dot:
             self.app.canvas.itemconfig(dot, fill="lightgreen")
-            self.app.canvas.itemconfig(label, fill="lightgreen")
+            
 
 class CharacterScanner:
     def __init__(self, app, process, base_address, canvas, character_images, image_cache):
@@ -156,18 +160,17 @@ class CharacterScanner:
         self.character_images = character_images
         self.image_cache = image_cache
         self.active_characters = set()  # Track currently active characters
-        print(f"CharacterScanner initialized with base_address: 0x{self.base_address:X}")
+        
 
     def scan(self):
         if self.base_address is None:
-            print("Error: base_address is None in CharacterScanner.scan")
+            logging.error("Error: base_address is None in CharacterScanner.scan")
             return
 
         try:
             self.active_characters.clear()  # Clear the active characters set
             for slot_index, offset in enumerate(CHARACTER_SLOT_ADDRESSES):
                 address = self.base_address + offset
-                print(f"Attempting to read character slot at computed address 0x{address:X} (base: 0x{self.base_address:X} + offset: 0x{offset:X})")
 
                 try:
                     byte_value = read_memory(self.process, address, 1)
@@ -175,14 +178,11 @@ class CharacterScanner:
                     character_name = CHARACTER_BYTE_MAPPING.get(character_id, "Unknown")
 
                     if character_name != "Unknown" and character_name != "Empty":
-                        print(f"Character {character_name} is in slot {slot_index + 1}.")
                         self.active_characters.add(character_name)  # Add to active characters set
                         update_character_image(self.canvas, self.character_images, character_name, True)
-                    else:
-                        print(f"No character or unrecognized byte value {character_id} in slot {slot_index + 1}.")
 
                 except Exception as e:
-                    print(f"Unexpected error reading character slot at address 0x{address:X}: {e}")
+                    logging.error(f"Unexpected error reading character slot at address 0x{address:X}: {e}")
 
             # Dim the characters not in the active party
             for character_name in self.character_images:
@@ -190,4 +190,4 @@ class CharacterScanner:
                     update_character_image(self.canvas, self.character_images, character_name, False)
 
         except Exception as e:
-            print(f"Error scanning character slots: {e}")
+            logging.error(f"Error scanning character slots: {e}")
