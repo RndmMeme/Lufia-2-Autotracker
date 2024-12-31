@@ -4,3 +4,5 @@ This is an automatic tracker for Lufia 2, mainly randomizer by abbysonym. It is 
 Marking a location automatically as "cleared" is currently not supported but planned.
 
 Look in "Help" for instructions.
+
+*** This version will get a complete overhaul, so no new updates for now ***
