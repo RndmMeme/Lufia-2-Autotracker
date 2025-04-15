@@ -1,1 +1,0 @@
-{"name": "snes9x", "gold_address": "0xA32D9E", "character_slots": ["0xA32D8F", "0xA32D90", "0xA32D91", "0xA32D92"], "inventory_range": ["0xA32DA1", "0xA32E60"], "scenario_range": ["0xA32C32", "0xA32C37"], "pointer_base_address": "0xA52330", "shop_offset": "0xBF09F"}
