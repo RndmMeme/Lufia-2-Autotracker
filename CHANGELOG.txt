@@ -1,0 +1,82 @@
+Version 1.3
+
+"Item / search" related changes / improvements:
+
+- Sort by Location, Sort by Item, Clear Buttons added
+
+Tracking:
+
+- added "Tracker" Button with Sub-set of Buttons
+- "Player Color" let's the Player choose the Color of the positional dot on the canvas which Displays the ingame Position of the Player at that Moment
+- "Sync" button with subset for either all or independet one time synchronization with game state
+- When executing a sync a visual hint (Banner) informs About success or issues
+
+Misc changes:
+
+- Moved "Help" and "About" Button to the Right
+- replaced the map by a different one which Matches the actual ingame size for easier tracking
+- adjusted size of rectangles and ovals
+- Disclaimer added in "About" for use in competetive Environments
+- removed "orange" from Location Colors
+- optimizations of code structures in some modules
+
+
+Known issues:
+None so far
+
+Version 1.2.1
+
+"Item / search" related changes / improvements:
+
+- moved the item / spells related search functions and window creations into their own module item_management.py
+- removed cascade in item / spells context menu to straight search
+- removed highlight in items/spells box
+- extended highlight duration when item entry looked up in search already exists
+- changed Color from "x" in items / spells box from red to White
+- when mouseover over "x" highlight row in red for the Duration of the mouseover
+- display matches in item search
+- mark item with mousewheel or arrows (even if mouse pointer is outside the suggestions window)
+- confirm marked item with mousebutton 2 (mouse Wheel click) (even if mouse pointer is outside the suggestions window)
+- forced search window priority (grab_set)
+- close search with esc
+- added Buttons for Weapon, Armor, Iris Treasure, Spells into active search window for faster Access
+
+added Features:
+
+- added Reset functionality
+- added Save functionality
+- added Load functionality
+
+Misc changes:
+
+- updated "About" and "Help"
+- when assigning a character to a location the color automatically changes to cleared (grey)
+- increased font size for better readability
+
+
+Known issues:
+
+- in item search the marking defaults to the center item despite matching
+
+Version 1.1
+
+Known Bugs and critiques fixed and built in:
+
+- Checks reset when a new item is added (bug) CRITICAL
+- Pink (yellow) dots = dots
+- Locations = rectangle shape
+- North Dungeon Capsule needs hook
+- Tooltip for cities
+- Adjust shape borders to fill
+- Flying Blow, not Flying Blade
+- Change color of circles depending on whether the city is already accessible. Chaed, Narvick, Premearl
+- When a character is on the map, check if a shape would be obscured and place the character in a free location
+- Reduce the spacing between the items
+- Appears very small in the stream (map in a separate window? Pop out if needed?)
+- Multiple selection in the search window
+- Search window autofocused, no auto-close, re-open, out of focus close
+- Shift spells when one is deleted
+- Display spell as already tracked when entered again in search?
+
+
+
