@@ -1,0 +1,1434 @@
+{
+    "Elcid": {
+        "weapon": [
+            [
+                "Knife",
+                "3800"
+            ]
+        ],
+        "armor": [
+            [
+                "Small shield",
+                "E400"
+            ]
+        ],
+        "spell": [
+            [
+                "Flash",
+                "00"
+            ],
+            [
+                "Drowsy",
+                "0E"
+            ],
+            [
+                "Confuse",
+                "15"
+            ]
+        ]
+    },
+    "Sundletan": {
+        "weapon": [
+            [
+                "Battle Knife",
+                "3B00"
+            ]
+        ],
+        "armor": [
+            [
+                "Lab-coat",
+                "A700"
+            ],
+            [
+                "Frock",
+                "A900"
+            ],
+            [
+                "Small shield",
+                "E400"
+            ],
+            [
+                "Hide shield",
+                "E500"
+            ],
+            [
+                "Buckler",
+                "E600"
+            ],
+            [
+                "Cap",
+                "1101"
+            ],
+            [
+                "Headband",
+                "1401"
+            ]
+        ],
+        "spell": [
+            [
+                "Spark",
+                "03"
+            ],
+            [
+                "Droplet",
+                "06"
+            ],
+            [
+                "Drowsy",
+                "0E"
+            ],
+            [
+                "Strong",
+                "19"
+            ],
+            [
+                "Poison",
+                "1C"
+            ]
+        ]
+    },
+    "Alunze Kingdom": {
+        "weapon": [
+            [
+                "Small Knife",
+                "3900"
+            ],
+            [
+                "Dagger",
+                "3C00"
+            ],
+            [
+                "Mace",
+                "7A00"
+            ],
+            [
+                "Whip",
+                "8900"
+            ]
+        ],
+        "armor": [
+            [
+                "Dress",
+                "A500"
+            ],
+            [
+                "Lab-coat",
+                "A700"
+            ],
+            [
+                "Frock",
+                "A900"
+            ],
+            [
+                "Cloth armor",
+                "AB00"
+            ],
+            [
+                "Coat",
+                "AC00"
+            ],
+            [
+                "Chop board",
+                "E300"
+            ],
+            [
+                "Hide shield",
+                "E500"
+            ],
+            [
+                "Ear Jewel",
+                "4301"
+            ]
+        ]
+    },
+    "Tanbel": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Long Knife",
+                "3E00"
+            ],
+            [
+                "Light Knife",
+                "4000"
+            ],
+            [
+                "Kukri",
+                "4100"
+            ],
+            [
+                "Mace",
+                "7A00"
+            ]
+        ],
+        "armor": [
+            [
+                "Light armor",
+                "AF00"
+            ],
+            [
+                "Camu armor",
+                "B000"
+            ],
+            [
+                "Power brace",
+                "EA00"
+            ],
+            [
+                "Jet Helm",
+                "1601"
+            ],
+            [
+                "Ear Jewel",
+                "4301"
+            ],
+            [
+                "Speedy Ring",
+                "4701"
+            ]
+        ],
+        "spell": [
+            [
+                "Vortex",
+                "07"
+            ],
+            [
+                "Perish",
+                "0C"
+            ],
+            [
+                "Trick",
+                "14"
+            ],
+            [
+                "Stronger",
+                "1A"
+            ],
+            [
+                "Rally",
+                "1D"
+            ],
+            [
+                "Shield",
+                "21"
+            ],
+            [
+                "Waken",
+                "22"
+            ],
+            [
+                "Warp",
+                "24"
+            ]
+        ]
+    },
+    "Clamento": {
+        "weapon": [
+            [
+                "Knife",
+                "3800"
+            ],
+            [
+                "Battle Knife",
+                "3B00"
+            ],
+            [
+                "Rod",
+                "7B00"
+            ]
+        ],
+        "armor": [
+            [
+                "Robe",
+                "AA00"
+            ],
+            [
+                "Cloth armor",
+                "AB00"
+            ],
+            [
+                "Light dress",
+                "AE00"
+            ],
+            [
+                "Wood shield",
+                "E800"
+            ],
+            [
+                "Bracelet",
+                "E900"
+            ],
+            [
+                "Pot",
+                "0F01"
+            ],
+            [
+                "Water Ring",
+                "4E01"
+            ]
+        ],
+        "spell": [
+            [
+                "Spark",
+                "03"
+            ],
+            [
+                "Droplet",
+                "06"
+            ],
+            [
+                "Gale",
+                "09"
+            ],
+            [
+                "Bravery",
+                "16"
+            ],
+            [
+                "Strong",
+                "19"
+            ],
+            [
+                "Poison",
+                "1C"
+            ],
+            [
+                "Release",
+                "23"
+            ],
+            [
+                "Escape",
+                "25"
+            ]
+        ]
+    },
+    "Parcelyte Kingdom": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Gladius",
+                "4200"
+            ],
+            [
+                "Chain",
+                "8B00"
+            ],
+            [
+                "Small Knife",
+                "3900"
+            ],
+            [
+                "Battle Knife",
+                "3B00"
+            ]
+        ],
+        "armor": [
+            [
+                "Cloth",
+                "A600"
+            ]
+        ]
+    },
+    "Merix": {
+        "weapon": [
+            [
+                "Rapier",
+                "3A00"
+            ],
+            [
+                "Whip",
+                "8900"
+            ]
+        ],
+        "armor": [
+            [
+                "Cloth",
+                "A600"
+            ],
+            [
+                "Tight dress",
+                "B200"
+            ],
+            [
+                "Jute Helmet",
+                "2801"
+            ],
+            [
+                "Mind Ring",
+                "4B01"
+            ]
+        ],
+        "spell": [
+            [
+                "Fake",
+                "13"
+            ],
+            [
+                "Confuse",
+                "15"
+            ],
+            [
+                "Waken",
+                "22"
+            ],
+            [
+                "Warp",
+                "24"
+            ],
+            [
+                "Escape",
+                "25"
+            ]
+        ]
+    },
+    "Bound Kingdom": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Aqua whip",
+                "8C00"
+            ],
+            [
+                "Battle Knife",
+                "3B00"
+            ]
+        ],
+        "armor": [
+            [
+                "Tough hide",
+                "AD00"
+            ],
+            [
+                "Cap",
+                "1101"
+            ]
+        ]
+    },
+    "Aleyn": {
+        "weapon": [
+            [
+                "War Rapier",
+                "4A00"
+            ]
+        ],
+        "armor": [
+            [
+                "Tight dress",
+                "B200"
+            ],
+            [
+                "Chain armor",
+                "B700"
+            ],
+            [
+                "Thick cloth",
+                "B800"
+            ],
+            [
+                "Block shield",
+                "EF00"
+            ],
+            [
+                "Mage shield",
+                "F900"
+            ],
+            [
+                "Beret",
+                "1001"
+            ],
+            [
+                "Headband",
+                "1401"
+            ],
+            [
+                "Power Ring",
+                "4801"
+            ],
+            [
+                "Ice Ring",
+                "4F01"
+            ],
+            [
+                "Eagle Rock",
+                "6A01"
+            ]
+        ],
+        "spell": [
+            [
+                "Thunder",
+                "02"
+            ],
+            [
+                "Ice Valk",
+                "0B"
+            ],
+            [
+                "Absorb",
+                "12"
+            ],
+            [
+                "Champion",
+                "1B"
+            ],
+            [
+                "Valor",
+                "1E"
+            ]
+        ]
+    },
+    "Gruberik": {
+        "weapon": [
+            [
+                "Rapier",
+                "3A00"
+            ],
+            [
+                "Bronze Sword",
+                "4800"
+            ],
+            [
+                "Thunder ax",
+                "7200"
+            ],
+            [
+                "Bronze ax",
+                "7400"
+            ]
+        ],
+        "armor": [
+            [
+                "Cloth",
+                "A600"
+            ],
+            [
+                "Frock",
+                "A900"
+            ],
+            [
+                "Coat",
+                "AC00"
+            ],
+            [
+                "Plated cloth",
+                "BB00"
+            ],
+            [
+                "Metal mail",
+                "BD00"
+            ],
+            [
+                "Chop board",
+                "E300"
+            ],
+            [
+                "Anger brace",
+                "EE00"
+            ],
+            [
+                "Fury Helmet",
+                "1E01"
+            ],
+            [
+                "Tight Helmet",
+                "2001"
+            ],
+            [
+                "Witch Ring",
+                "4C01"
+            ],
+            [
+                "S-Ice Ring",
+                "5901"
+            ]
+        ]
+    },
+    "Narcysus": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "SuhrCustom11",
+                "4700"
+            ],
+            [
+                "Bronze Sword",
+                "4800"
+            ],
+            [
+                "Thunder ax",
+                "7200"
+            ],
+            [
+                "Rod",
+                "7B00"
+            ],
+            [
+                "Morning star",
+                "8200"
+            ]
+        ],
+        "armor": [
+            [
+                "Power cape",
+                "C600"
+            ],
+            [
+                "Plate Helmet",
+                "2601"
+            ],
+            [
+                "Metal Cloche",
+                "2A01"
+            ],
+            [
+                "Fury Ring",
+                "5101"
+            ],
+            [
+                "S-Water Ring",
+                "5801"
+            ]
+        ]
+    },
+    "Karlloon": {
+        "weapon": [
+            [
+                "Deadly Sword",
+                "4500"
+            ],
+            [
+                "Hand ax",
+                "7300"
+            ],
+            [
+                "Long staff",
+                "8000"
+            ]
+        ],
+        "armor": [
+            [
+                "Cloth",
+                "A600"
+            ],
+            [
+                "Robe",
+                "AA00"
+            ],
+            [
+                "Ironmail",
+                "B500"
+            ],
+            [
+                "Power jacket",
+                "C300"
+            ],
+            [
+                "Anger brace",
+                "EE00"
+            ],
+            [
+                "Round shield",
+                "F100"
+            ],
+            [
+                "Beret",
+                "1001"
+            ],
+            [
+                "Cloche",
+                "1D01"
+            ],
+            [
+                "S-Witch Ring",
+                "5E01"
+            ]
+        ],
+        "spell": [
+            [
+                "Bolt",
+                "01"
+            ],
+            [
+                "Fireball",
+                "04"
+            ],
+            [
+                "Firebird",
+                "05"
+            ],
+            [
+                "Dragon",
+                "08"
+            ],
+            [
+                "Blizzard",
+                "0A"
+            ],
+            [
+                "Coma",
+                "0F"
+            ],
+            [
+                "Fake",
+                "13"
+            ],
+            [
+                "Courage",
+                "17"
+            ]
+        ]
+    },
+    "Treadool": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Estok",
+                "5100"
+            ],
+            [
+                "Deadly rod",
+                "7E00"
+            ],
+            [
+                "Holy staff",
+                "8100"
+            ]
+        ],
+        "armor": [
+            [
+                "Chain armor",
+                "B700"
+            ],
+            [
+                "Thick cloth",
+                "B800"
+            ],
+            [
+                "Silk toga",
+                "BE00"
+            ],
+            [
+                "Tall shield",
+                "F500"
+            ],
+            [
+                "Mage shield",
+                "F900"
+            ],
+            [
+                "Tect buckler",
+                "FB00"
+            ],
+            [
+                "Silver Helmet",
+                "2B01"
+            ],
+            [
+                "Plati Helm",
+                "3301"
+            ],
+            [
+                "S-Fire Ring",
+                "5701"
+            ],
+            [
+                "S-Water Ring",
+                "5801"
+            ],
+            [
+                "S-Thun Ring",
+                "5A01"
+            ]
+        ]
+    },
+    "Forfeit Island": {
+        "weapon": [
+            [
+                "Spark staff",
+                "8800"
+            ],
+            [
+                "Bronze Sword",
+                "4800"
+            ],
+            [
+                "Estok",
+                "5100"
+            ],
+            [
+                "Morning star",
+                "8200"
+            ],
+            [
+                "Fatal pick",
+                "9200"
+            ],
+            [
+                "Figgoru",
+                "9C00"
+            ],
+            [
+                "Zirco whip",
+                "9000"
+            ],
+            [
+                "Crystal wand",
+                "8400"
+            ],
+            [
+                "Small Knife",
+                "3900"
+            ],
+            [
+                "Dagger",
+                "3C00"
+            ],
+            [
+                "Insect Crush",
+                "3D00"
+            ]
+        ],
+        "armor": [
+            [
+                "Dress",
+                "A500"
+            ],
+            [
+                "Hide shield",
+                "E500"
+            ],
+            [
+                "Cap",
+                "1101"
+            ],
+            [
+                "Hairband",
+                "1301"
+            ]
+        ]
+    },
+    "Dankirk Kingdom": {
+        "weapon": [
+            [
+                "Long Knife",
+                "3E00"
+            ],
+            [
+                "Cutter whip",
+                "8D00"
+            ],
+            [
+                "Royal whip",
+                "8E00"
+            ],
+            [
+                "Vice pliers",
+                "9A00"
+            ]
+        ],
+        "armor": [
+            [
+                "Dress",
+                "A500"
+            ],
+            [
+                "Hide armor",
+                "A800"
+            ],
+            [
+                "Plati shield",
+                "FF00"
+            ],
+            [
+                "Plati Helm",
+                "3301"
+            ],
+            [
+                "Sonic Ring",
+                "5301"
+            ],
+            [
+                "S-Witch Ring",
+                "5E01"
+            ],
+            [
+                "Rocket Ring",
+                "6001"
+            ],
+            [
+                "Cancer Rock",
+                "6E01"
+            ]
+        ],
+        "spell": [
+            [
+                "Fireball",
+                "04"
+            ],
+            [
+                "Courage",
+                "17"
+            ],
+            [
+                "Mirror",
+                "18"
+            ],
+            [
+                "Stronger",
+                "1A"
+            ]
+        ]
+    },
+    "Auralio Kingdom": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Long Sword",
+                "4B00"
+            ],
+            [
+                "Cutter whip",
+                "8D00"
+            ]
+        ],
+        "armor": [
+            [
+                "Power jacket",
+                "C300"
+            ],
+            [
+                "Magic bikini",
+                "C700"
+            ],
+            [
+                "Tecto gloves",
+                "F000"
+            ],
+            [
+                "Tuff buckler",
+                "FA00"
+            ],
+            [
+                "Silver Helmet",
+                "2B01"
+            ],
+            [
+                "Angry Ring",
+                "6201"
+            ],
+            [
+                "Earth Jewel",
+                "7801"
+            ],
+            [
+                "Zirco Gloves",
+                "0300"
+            ],
+            [
+                "Lab-coat",
+                "A700"
+            ]
+        ]
+    },
+    "Ferim Kingdom": {
+        "weapon": [
+            [
+                "Rapier",
+                "3A00"
+            ],
+            [
+                "Spear",
+                "9400"
+            ]
+        ],
+        "armor": [
+            [
+                "Frock",
+                "A900"
+            ],
+            [
+                "Plated cloth",
+                "BB00"
+            ],
+            [
+                "Silk toga",
+                "BE00"
+            ],
+            [
+                "Evening gown",
+                "C900"
+            ],
+            [
+                "Hairband",
+                "1301"
+            ],
+            [
+                "Circlet",
+                "2F01"
+            ],
+            [
+                "Gloom Jewel",
+                "7A01"
+            ]
+        ],
+        "spell": [
+            [
+                "Firebird",
+                "05"
+            ],
+            [
+                "Perish",
+                "0C"
+            ],
+            [
+                "Rally",
+                "1D"
+            ]
+        ]
+    },
+    "Treble": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Holy staff",
+                "8100"
+            ],
+            [
+                "Superdriver",
+                "9D00"
+            ],
+            [
+                "Mace",
+                "7A00"
+            ],
+            [
+                "Rod",
+                "7B00"
+            ]
+        ],
+        "armor": [
+            [
+                "Cloth",
+                "A600"
+            ],
+            [
+                "Beret",
+                "1001"
+            ],
+            [
+                "Cap",
+                "1101"
+            ]
+        ]
+    },
+    "Portravia": {
+        "weapon": [
+            [
+                "Knife",
+                "3800"
+            ],
+            [
+                "Dagger",
+                "3C00"
+            ],
+            [
+                "Thunder ax",
+                "7200"
+            ],
+            [
+                "Rainy ax",
+                "7600"
+            ]
+        ],
+        "armor": [
+            [
+                "Dress",
+                "A500"
+            ],
+            [
+                "Cloth",
+                "A600"
+            ],
+            [
+                "Lab-coat",
+                "A700"
+            ],
+            [
+                "Plati plate",
+                "CB00"
+            ],
+            [
+                "Crystal mail",
+                "CE00"
+            ],
+            [
+                "Tuff buckler",
+                "FA00"
+            ],
+            [
+                "Gold gloves",
+                "FC00"
+            ],
+            [
+                "S-Myst Ring",
+                "6301"
+            ],
+            [
+                "Bee Rock",
+                "6C01"
+            ],
+            [
+                "Bat Rock",
+                "7301"
+            ]
+        ],
+        "spell": [
+            [
+                "Thunder",
+                "02"
+            ],
+            [
+                "Dragon",
+                "08"
+            ],
+            [
+                "Valor",
+                "1E"
+            ]
+        ]
+    },
+    "Eserikto": {
+        "weapon": [
+            [
+                "Rapier",
+                "3A00"
+            ],
+            [
+                "Berserk Blade",
+                "4D00"
+            ],
+            [
+                "Rod",
+                "7B00"
+            ],
+            [
+                "Holy whip",
+                "8F00"
+            ]
+        ],
+        "armor": [
+            [
+                "Dress",
+                "A500"
+            ],
+            [
+                "Cloth",
+                "A600"
+            ],
+            [
+                "Coat",
+                "AC00"
+            ],
+            [
+                "Silver robe",
+                "C800"
+            ],
+            [
+                "Plati shield",
+                "FF00"
+            ],
+            [
+                "Golden Helm",
+                "3001"
+            ],
+            [
+                "Holy Cap",
+                "3601"
+            ],
+            [
+                "Earth Jewel",
+                "7801"
+            ]
+        ],
+        "spell": [
+            [
+                "Ice Valk",
+                "0B"
+            ],
+            [
+                "Destroy",
+                "0D"
+            ],
+            [
+                "Absorb",
+                "12"
+            ],
+            [
+                "Champion",
+                "1B"
+            ],
+            [
+                "Fry",
+                "1F"
+            ]
+        ]
+    },
+    "Barnan": {
+        "weapon": [
+            [
+                "Water spear",
+                "9800"
+            ],
+            [
+                "Estok",
+                "5100"
+            ],
+            [
+                "Luck Rapier*",
+                "5800"
+            ],
+            [
+                "Freeze Sword",
+                "6000"
+            ],
+            [
+                "Rainy ax",
+                "7600"
+            ],
+            [
+                "Spear",
+                "9400"
+            ],
+            [
+                "Battle Knife",
+                "3B00"
+            ],
+            [
+                "Long Knife",
+                "3E00"
+            ],
+            [
+                "Staff",
+                "7C00"
+            ]
+        ],
+        "armor": [
+            [
+                "Apron",
+                "A400"
+            ],
+            [
+                "Small shield",
+                "E400"
+            ]
+        ]
+    },
+    "Durale": {
+        "weapon": [
+            [
+                "Dagger",
+                "3C00"
+            ],
+            [
+                "Long Knife",
+                "3E00"
+            ],
+            [
+                "Deadly Sword",
+                "5600"
+            ],
+            [
+                "Luck Rapier*",
+                "5800"
+            ],
+            [
+                "Flying Blade",
+                "6200"
+            ],
+            [
+                "Whip",
+                "8900"
+            ]
+        ],
+        "armor": [
+            [
+                "Dress",
+                "A500"
+            ],
+            [
+                "Plati plate",
+                "CB00"
+            ],
+            [
+                "Bright cloth",
+                "D600"
+            ],
+            [
+                "Chop board",
+                "E300"
+            ],
+            [
+                "Small shield",
+                "E400"
+            ],
+            [
+                "Cap",
+                "1101"
+            ],
+            [
+                "Cloche",
+                "1D01"
+            ],
+            [
+                "Ancient (Old) Helmet",
+                "3A01"
+            ],
+            [
+                "Gloom Jewel",
+                "7A01"
+            ],
+            [
+                "Magma Rock",
+                "7C01"
+            ]
+        ],
+        "spell": [
+            [
+                "Destroy",
+                "0D"
+            ],
+            [
+                "Zap",
+                "20"
+            ]
+        ]
+    },
+    "Preamarl": {
+        "weapon": [
+            [
+                "Zirco Sword",
+                "6800"
+            ],
+            [
+                "Mace",
+                "7A00"
+            ],
+            [
+                "Rod",
+                "7B00"
+            ],
+            [
+                "Zirco rod",
+                "8600"
+            ],
+            [
+                "Whip",
+                "8900"
+            ]
+        ],
+        "armor": [
+            [
+                "Frock",
+                "A900"
+            ],
+            [
+                "Power robe",
+                "D700"
+            ],
+            [
+                "Aqua Helm",
+                "3D01"
+            ],
+            [
+                "Hidora Rock",
+                "7401"
+            ]
+        ]
+    },
+    "Narvick": {
+        "weapon": [
+            [
+                "Buster Sword",
+                "6400"
+            ],
+            [
+                "Lizard Blow",
+                "6700"
+            ],
+            [
+                "Zirco ax",
+                "7800"
+            ],
+            [
+                "Zirco whip",
+                "9000"
+            ],
+            [
+                "Air whip",
+                "9100"
+            ]
+        ],
+        "armor": [
+            [
+                "Apron",
+                "A400"
+            ],
+            [
+                "Lab-coat",
+                "A700"
+            ],
+            [
+                "Hide armor",
+                "A800"
+            ],
+            [
+                "Holy robe",
+                "D900"
+            ],
+            [
+                "Zircon plate",
+                "DE00"
+            ],
+            [
+                "Zirco Band",
+                "3801"
+            ],
+            [
+                "Glass Ring",
+                "4501"
+            ],
+            [
+                "Witch Ring",
+                "4C01"
+            ],
+            [
+                "Kraken Rock",
+                "8101"
+            ],
+            [
+                "Black Eye",
+                "8701"
+            ]
+        ]
+    }
+}

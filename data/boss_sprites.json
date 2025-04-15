@@ -1,0 +1,154 @@
+[
+    {
+      "name": "lizardman",
+      "sprite_index": "9e"
+    },
+    {
+      "name": "catfish",
+      "sprite_index": "c5"
+    },
+    {
+      "name": "#skeleton",
+      "sprite_index": "a0"
+    },
+    {
+      "name": "#goblin",
+      "sprite_index": "9d"
+    },
+    {
+      "name": "regal_goblin",
+      "sprite_index": "9d"
+    },
+    {
+      "name": "followers",
+      "sprite_index": "76"
+    },
+    {
+      "name": "camu",
+      "sprite_index": "75"
+    },
+    {
+      "name": "tarantula",
+      "sprite_index": "c6"
+    },
+    {
+      "name": "#pierre1",
+      "sprite_index": "77"
+    },
+    {
+      "name": "#daniele1",
+      "sprite_index": "78"
+    },
+    {
+      "name": "gades1",
+      "sprite_index": "7a"
+    },
+    {
+      "name": "mummies",
+      "sprite_index": "a8"
+    },
+    {
+      "name": "trolls",
+      "sprite_index": "a9"
+    },
+    {
+      "name": "gades2",
+      "sprite_index": "7a"
+    },
+    {
+      "name": "idura1",
+      "sprite_index": "74"
+    },
+    {
+      "name": "pierre2",
+      "sprite_index": "77"
+    },
+    {
+      "name": "daniele2",
+      "sprite_index": "78"
+    },
+    {
+      "name": "lions",
+      "sprite_index": "b7"
+    },
+    {
+      "name": "idura2",
+      "sprite_index": "74"
+    },
+    {
+      "name": "idura3",
+      "sprite_index": "74"
+    },
+    {
+      "name": "flower",
+      "sprite_index": "96"
+    },
+    {
+      "name": "soldiers1",
+      "sprite_index": "18"
+    },
+    {
+      "name": "gargoyles",
+      "sprite_index": "c4"
+    },
+    {
+      "name": "venge_ghost",
+      "sprite_index": "d0"
+    },
+    {
+      "name": "white_dragons",
+      "sprite_index": "c0"
+    },
+    {
+      "name": "fire_dragon",
+      "sprite_index": "c0"
+    },
+    {
+      "name": "ghost_ship",
+      "sprite_index": "c8"
+    },
+    {
+      "name": "soldiers2",
+      "sprite_index": "18"
+    },
+    {
+      "name": "soldiers3",
+      "sprite_index": "18"
+    },
+    {
+      "name": "tank",
+      "sprite_index": "c7"
+    },
+    {
+      "name": "gades3",
+      "sprite_index": "7a"
+    },
+    {
+      "name": "amon1",
+      "sprite_index": "79"
+    },
+    {
+      "name": "gades4",
+      "sprite_index": "7a"
+    },
+    {
+      "name": "amon2",
+      "sprite_index": "79"
+    },
+    {
+      "name": "erim",
+      "sprite_index": "7c"
+    },
+    {
+      "name": "daos",
+      "sprite_index": "7b"
+    },
+    {
+      "name": "#egg_dragon",
+      "sprite_index": "c0"
+    },
+    {
+      "name": "#master_jelly",
+      "sprite_index": "94"
+    }
+  ]

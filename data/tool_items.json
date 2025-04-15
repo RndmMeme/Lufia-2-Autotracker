@@ -1,0 +1,41 @@
+{
+    "Arrow": {
+        "obtained_value": "0x03A9",
+        "image_path":  "tool_items/arrow.png",
+        "type": "normal"
+    },
+    "Bomb": {
+        "obtained_value": "0x03A8",
+        "image_path":  "tool_items/bomb.png",
+        "type": "normal"
+    },
+    "Hammer": {
+        "obtained_value": "0x03AB",
+        "image_path":  "tool_items/hammer.png",
+        "type": "normal"
+    },
+    "Hook": {
+        "obtained_value": "0x03A7",
+        "image_path":  "tool_items/hook.png",
+        "type": "normal"
+    },
+    "Fire": {
+        "obtained_value": "0x03AA",
+        "image_path":  "tool_items/firearrow.png",
+        "type": "normal"
+    },
+    "Jade": {
+        
+        "obtained_value": "0001 0000 0000 0000 0000 0000",
+        "image_path":  "tool_items/Mermaid Jade.png",
+        "type": "special"
+    },
+    
+    "Engine": {
+        
+        "obtained_value": "0010 0000 0000 0000 0000 0000",
+        "image_path":  "tool_items/engine.png",
+        "type": "special"
+	
+    }
+}

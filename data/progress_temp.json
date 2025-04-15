@@ -1,0 +1,502 @@
+{
+    "tools_canvas": [
+        {
+            "type": "tool",
+            "name": "Arrow",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\arrowbw.png",
+            "position": 1
+        },
+        {
+            "type": "tool",
+            "name": "Bomb",
+            "obtained": true,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\bomb.png",
+            "position": 3
+        },
+        {
+            "type": "tool",
+            "name": "Hammer",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\hammerbw.png",
+            "position": 5
+        },
+        {
+            "type": "tool",
+            "name": "Hook",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\hookbw.png",
+            "position": 7
+        },
+        {
+            "type": "tool",
+            "name": "Fire",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\firearrowbw.png",
+            "position": 9
+        },
+        {
+            "type": "tool",
+            "name": "Engine",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\enginebw.png",
+            "position": 11
+        },
+        {
+            "type": "tool",
+            "name": "Jade",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\tool_items\\Mermaid Jade bw.png",
+            "position": 13
+        }
+    ],
+    "scenario_canvas": [
+        {
+            "type": "scenario",
+            "name": "Basement",
+            "obtained": true,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Basement key.png",
+            "position": 1
+        },
+        {
+            "type": "scenario",
+            "name": "Cloud",
+            "obtained": true,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Cloud key.png",
+            "position": 3
+        },
+        {
+            "type": "scenario",
+            "name": "Dankirk",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Dankirk keybw.png",
+            "position": 5
+        },
+        {
+            "type": "scenario",
+            "name": "Flower",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Flower keybw.png",
+            "position": 7
+        },
+        {
+            "type": "scenario",
+            "name": "Ghost",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Ghost keybw.png",
+            "position": 9
+        },
+        {
+            "type": "scenario",
+            "name": "Heart",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Heart keybw.png",
+            "position": 11
+        },
+        {
+            "type": "scenario",
+            "name": "Lake",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Lake keybw.png",
+            "position": 13
+        },
+        {
+            "type": "scenario",
+            "name": "Light",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Light keybw.png",
+            "position": 15
+        },
+        {
+            "type": "scenario",
+            "name": "Magma",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Magma keybw.png",
+            "position": 17
+        },
+        {
+            "type": "scenario",
+            "name": "Narcysus",
+            "obtained": true,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Narcysus key.png",
+            "position": 19
+        },
+        {
+            "type": "scenario",
+            "name": "Ruby",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Ruby keybw.png",
+            "position": 21
+        },
+        {
+            "type": "scenario",
+            "name": "Sky",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Sky keybw.png",
+            "position": 23
+        },
+        {
+            "type": "scenario",
+            "name": "Sword",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Sword keybw.png",
+            "position": 25
+        },
+        {
+            "type": "scenario",
+            "name": "Tree",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Tree keybw.png",
+            "position": 27
+        },
+        {
+            "type": "scenario",
+            "name": "Trial",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Trial keybw.png",
+            "position": 29
+        },
+        {
+            "type": "scenario",
+            "name": "Truth",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Truth keybw.png",
+            "position": 31
+        },
+        {
+            "type": "scenario",
+            "name": "Wind",
+            "obtained": false,
+            "current_image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\scenario_items\\Wind keybw.png",
+            "position": 33
+        }
+    ],
+    "characters_canvas": [
+        {
+            "type": "character",
+            "name": "Guy",
+            "obtained": true,
+            "image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\character\\guybw.png",
+            "position": 7
+        },
+        {
+            "type": "location_assignment",
+            "name": "Artea",
+            "image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\character\\artybw.png",
+            "mini_image_coords": [
+                297.0,
+                45.00000000000001
+            ],
+            "location": "Shaia Lab",
+            "canvas_x": 228.0,
+            "canvas_y": 60.0,
+            "obtained": true,
+            "position": 9
+        },
+        {
+            "type": "location_assignment",
+            "name": "Gusto",
+            "image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\capsules\\gustobw.png",
+            "mini_image_coords": [
+                240.953125,
+                272.046875
+            ],
+            "location": "Darbi Shrine",
+            "canvas_x": 116.0,
+            "canvas_y": 160.0,
+            "obtained": true,
+            "position": 19
+        }
+    ],
+    "maidens_canvas": [
+        {
+            "type": "maiden",
+            "name": "Claire",
+            "obtained": true,
+            "image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\character\\clarebw.png",
+            "position": 1
+        },
+        {
+            "type": "maiden",
+            "name": "Lisa",
+            "obtained": true,
+            "image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\character\\lisabw.png",
+            "position": 3
+        },
+        {
+            "type": "maiden",
+            "name": "Marie",
+            "obtained": true,
+            "image_path": "C:\\Users\\daniel\\Desktop\\NEW Lufia2 Tracker AUTO\\src - v1.2.1\\images\\character\\mariebw.png",
+            "position": 5
+        }
+    ],
+    "item_canvas": [],
+    "hint_canvas": "",
+    "map_canvas": [
+        {
+            "location": "Elcid",
+            "color": "yellow"
+        },
+        {
+            "location": "Sundletan",
+            "color": "yellow"
+        },
+        {
+            "location": "Alunze Kingdom",
+            "color": "yellow"
+        },
+        {
+            "location": "Tanbel",
+            "color": "yellow"
+        },
+        {
+            "location": "Clamento",
+            "color": "yellow"
+        },
+        {
+            "location": "Parcelyte Kingdom",
+            "color": "yellow"
+        },
+        {
+            "location": "Gordovan",
+            "color": "yellow"
+        },
+        {
+            "location": "Merix",
+            "color": "yellow"
+        },
+        {
+            "location": "Bound Kingdom",
+            "color": "yellow"
+        },
+        {
+            "location": "Aleyn",
+            "color": "yellow"
+        },
+        {
+            "location": "Gruberik",
+            "color": "yellow"
+        },
+        {
+            "location": "Narcysus",
+            "color": "yellow"
+        },
+        {
+            "location": "Karlloon",
+            "color": "yellow"
+        },
+        {
+            "location": "Treadool",
+            "color": "yellow"
+        },
+        {
+            "location": "Dankirk Kingdom",
+            "color": "yellow"
+        },
+        {
+            "location": "Forfeit Island",
+            "color": "yellow"
+        },
+        {
+            "location": "Auralio Kingdom",
+            "color": "yellow"
+        },
+        {
+            "location": "Ferim Kingdom",
+            "color": "yellow"
+        },
+        {
+            "location": "Agurio",
+            "color": "yellow"
+        },
+        {
+            "location": "Treble",
+            "color": "yellow"
+        },
+        {
+            "location": "Portravia",
+            "color": "yellow"
+        },
+        {
+            "location": "Eserikto",
+            "color": "yellow"
+        },
+        {
+            "location": "Pico Woods",
+            "color": "yellow"
+        },
+        {
+            "location": "Barnan",
+            "color": "yellow"
+        },
+        {
+            "location": "Durale",
+            "color": "yellow"
+        },
+        {
+            "location": "Chaed",
+            "color": "red"
+        },
+        {
+            "location": "Preamarl",
+            "color": "red"
+        },
+        {
+            "location": "Narvick",
+            "color": "red"
+        },
+        {
+            "location": "Gratze Castle",
+            "color": "red"
+        },
+        {
+            "location": "Alunze Basement",
+            "color": "lightgreen"
+        },
+        {
+            "location": "Foomy Woods",
+            "color": "grey"
+        },
+        {
+            "location": "Treasure Sword Shrine",
+            "color": "red"
+        },
+        {
+            "location": "Karlloon Shrine",
+            "color": "red"
+        },
+        {
+            "location": "Divine Shrine",
+            "color": "red"
+        },
+        {
+            "location": "Shrine of Vengeance",
+            "color": "red"
+        },
+        {
+            "location": "Darbi Shrine",
+            "color": "grey"
+        },
+        {
+            "location": "Submarine Shrine",
+            "color": "red"
+        },
+        {
+            "location": "Daos' Shrine",
+            "color": "red"
+        },
+        {
+            "location": "Tanbel Tower",
+            "color": "red"
+        },
+        {
+            "location": "Lighthouse",
+            "color": "red"
+        },
+        {
+            "location": "Gordovan Tower",
+            "color": "red"
+        },
+        {
+            "location": "Ancient Tower",
+            "color": "red"
+        },
+        {
+            "location": "Tower of Sacrifice",
+            "color": "red"
+        },
+        {
+            "location": "Sacrifice Capsule",
+            "color": "red"
+        },
+        {
+            "location": "Ferim Tower",
+            "color": "red"
+        },
+        {
+            "location": "Tower of Truth",
+            "color": "red"
+        },
+        {
+            "location": "Shuman Tower",
+            "color": "red"
+        },
+        {
+            "location": "Stradah Tower",
+            "color": "red"
+        },
+        {
+            "location": "Karmirno Tower",
+            "color": "red"
+        },
+        {
+            "location": "Secret Skills Cave",
+            "color": "red"
+        },
+        {
+            "location": "Cave to Sundletan",
+            "color": "grey"
+        },
+        {
+            "location": "Lake Cave",
+            "color": "red"
+        },
+        {
+            "location": "Alunze Cave",
+            "color": "lightgreen"
+        },
+        {
+            "location": "Ruby Cave",
+            "color": "red"
+        },
+        {
+            "location": "Ruby Cave Capsule",
+            "color": "lightgreen"
+        },
+        {
+            "location": "Cave Bridge",
+            "color": "red"
+        },
+        {
+            "location": "North Dungeon",
+            "color": "red"
+        },
+        {
+            "location": "North Dungeon Capsule",
+            "color": "red"
+        },
+        {
+            "location": "Shaia Lab",
+            "color": "grey"
+        },
+        {
+            "location": "Dankirk Dungeon",
+            "color": "red"
+        },
+        {
+            "location": "Zeppy Cave",
+            "color": "red"
+        },
+        {
+            "location": "Phantom Mountain",
+            "color": "red"
+        },
+        {
+            "location": "Flower Mountain",
+            "color": "red"
+        },
+        {
+            "location": "Flower Capsule",
+            "color": "red"
+        },
+        {
+            "location": "Mnt.Of No Return",
+            "color": "grey"
+        },
+        {
+            "location": "Dragon Mountain",
+            "color": "red"
+        }
+    ]
+}

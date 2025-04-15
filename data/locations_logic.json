@@ -1,0 +1,163 @@
+{
+    "Alunze Basement": {
+        "access_rules": ["Bomb", "Hammer"]
+        
+    },
+    "Alunze Cave": {
+        "access_rules": ["Bomb","Hammer"]
+        
+    },
+    "Ancient Tower": {
+        "access_rules": ["Bomb,Hook,Cloud","Hammer,Hook,Cloud"]
+        
+    },
+    "Cave Bridge": {
+        "access_rules": ["Bomb,Hook","Hammer,Hook"]
+        
+    },
+    "Zeppy Cave": {
+        "access_rules": ["Jade"]
+        
+    },
+    "Darbi Shrine": {
+        "access_rules": [] 
+    },
+    "Chaed": {
+        "access_rules": ["Engine", "Jade"]
+    },
+    "Dankirk Dungeon": {
+        "access_rules": ["Bomb,Hook,Dankirk"]
+        
+    },
+    "Divine Shrine": {
+        "access_rules": ["Heart,Hook,Hammer"]
+        
+    },
+    "Daos' Shrine": {
+        "access_rules": ["Claire,Lisa,Marie, Engine"]
+        
+    },
+    "Dragon Mountain": {
+        "access_rules": ["Magma,Hook,Hammer,Fire,Engine","Magma,Hook,Hammer,Fire,Jade"]
+        
+    },
+    "Submarine Shrine":{
+        "access_rules": ["Jade"]
+
+    },
+    "Flower Capsule": {
+        "access_rules": ["Hammer,Hook"]
+        
+    },
+    "Flower Mountain": {
+        "access_rules": ["Hammer,Flower"]
+        
+    },
+    "Foomy Woods": {
+        "access_rules": []
+        
+    },
+    "Gordovan Tower": {
+        "access_rules": ["Bomb,Hook,Wind"]
+        
+    },
+    "Gratze Castle": {
+        "access_rules": ["Basement,Engine,Arrow","Basement,Engine,Fire","Basement,Engine,Hook","Basement,Jade,Arrow","Basement,Jade,Fire","Basement,Jade,Hook","Bomb,Hook,Dankirk,Basement"]
+        
+    },
+    "Karmirno Tower": {
+        "access_rules": ["Engine"]
+        
+    },
+    "Karlloon Shrine": {
+        "access_rules": ["Bomb,Hook"]
+        
+    },
+    "Lake Cave": {
+        "access_rules": ["Lake,Arrow","Lake,Fire","Lake,Hook"]
+        
+    },
+    "Shaia Lab": {
+        "access_rules": []
+        
+    },
+    "M. No Return": {
+        "access_rules": []
+        
+    },
+    "Narvick":{
+        "access_rules": ["Engine", "Jade"]
+    },
+    "North Dungeon Capsule": {
+        "access_rules": ["Hook"]
+        
+    },
+     "North Dungeon": {
+        "access_rules": ["Bomb,Hook"]
+        
+    },
+    "Lighthouse": {
+        "access_rules": ["Light"]
+        
+    },
+    "Ferim Tower": {
+        "access_rules": ["Hook,Hammer,Trial"]
+        
+    },
+    "Phantom Mountain": {
+        "access_rules": ["Bomb,Hook,Fire,Tree"]
+        
+    },
+    "Preamarl": {
+        "access_rules": ["Jade"]
+    },
+    "Ruby Cave Capsule": {
+        "access_rules": ["Bomb","Hammer"]
+        
+    },
+    "Ruby Cave": {
+        "access_rules": ["Ruby"]
+        
+    },
+    "Shrine of Vengeance": {
+        "access_rules": ["Ghost,Jade,Bomb,Hammer"]
+        
+    },
+    "Shuman Tower": {
+        "access_rules": ["Engine"]
+        
+    },
+    "Secret Skills Cave": {
+        "access_rules": ["Arrow","Fire","Hook"]
+        
+    },
+    "Stradah Tower": {
+        "access_rules": ["Engine"]
+        
+    },
+    "Cave to Sundletan": {
+        "access_rules": []
+        
+    },
+    "Tanbel Tower": {
+        "access_rules": ["Sky"]
+        
+    },
+    "Tower of Sacrifice": {
+        "access_rules": ["Narcysus,Hook,Bomb"]
+        
+    },
+    "Sacrifice Capsule": {
+        "access_rules": ["Narcysus,Hook,Bomb","Narcysus,Hook,Hammer"]
+        
+    },
+    "Tower of Truth": {
+        "access_rules": ["Truth,Hook,Bomb","Truth,Hook,Hammer"]
+        
+    },
+    "Treasure Sword Shrine": {
+        "access_rules": ["Sword,Bomb"]
+        
+    }
+    
+}

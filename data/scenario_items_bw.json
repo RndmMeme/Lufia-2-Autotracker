@@ -1,0 +1,86 @@
+{
+    "Basement": {
+        
+        "image_path":  "scenario_items/Basement keybw.png",
+	"obtained_value": ""
+    },
+    "Cloud": {
+        
+        "image_path":  "scenario_items/Cloud keybw.png",
+	"obtained_value": ""
+    },
+    "Dankirk": {
+        
+        "image_path":  "scenario_items/Dankirk keybw.png",
+	"obtained_value": ""
+    },
+    "Flower": {
+        
+        "image_path":  "scenario_items/Flower keybw.png",
+	"obtained_value": ""
+    },
+    "Ghost": {
+        
+        "image_path":  "scenario_items/Ghost keybw.png",
+	"obtained_value": ""
+    },
+    "Heart": {
+        
+        "image_path":  "scenario_items/Heart keybw.png",
+	"obtained_value": "" 
+    },
+    "Lake": {
+        
+        "image_path":  "scenario_items/Lake keybw.png",
+	"obtained_value": "" 
+    },
+    "Light": {
+        
+        "image_path":  "scenario_items/Light keybw.png",
+	"obtained_value": "" 
+    },
+    "Magma": {
+        
+        "image_path":  "scenario_items/Magma keybw.png",
+	"obtained_value": "" 
+    },
+    "Narcysus": {
+        
+        "image_path":  "scenario_items/Narcysus keybw.png",
+	"obtained_value": "" 
+    },
+    "Ruby": {
+        
+        "image_path":  "scenario_items/Ruby keybw.png",
+	"obtained_value": "" 
+    },
+    "Sky": {
+        "image_path":  "scenario_items/Sky keybw.png",
+	"obtained_value": "" 
+    },
+    "Sword": {
+        
+        "image_path":  "scenario_items/Sword keybw.png",
+	"obtained_value": "" 
+    },
+    "Tree": {
+        "image_path":  "scenario_items/Tree keybw.png",
+	"obtained_value": "" 
+    },
+    "Trial": {
+        
+        "image_path":  "scenario_items/Trial keybw.png",
+	"obtained_value": "" 
+    },
+    "Truth": {
+        
+        "image_path":  "scenario_items/Truth keybw.png",
+	"obtained_value": "" 
+    },
+    "Wind": {
+        
+        "image_path":  "scenario_items/Wind keybw.png",
+	"obtained_value": "" 
+    }
+    
+}

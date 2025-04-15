@@ -1,0 +1,164 @@
+{
+  "shops": [
+    {
+      "city": "Elcid",
+      "weapon": "bf0a3-bf0c2",
+      "armor": "bf0a3-bf0c2",
+      "spell": "bf0c9 - bf0cd"
+      
+    },
+    {
+      "city": "Sundletan",
+      "weapon": "bf0cf - bf0f8",
+      "armor": "bf0cf - bf0f8",
+      "spell": "bf0ff - bf105",
+      "misc": "bf107 - bf113"
+    },
+    {
+      "city": "Alunze Kingdom",
+      "weapon": "bf118 - bf143",
+      "armor": "bf118 - bf143"
+      
+    },
+    {
+      "city": "Tanbel",
+      "weapon": "bf147 - bf15e",
+      "armor": "bf147 - bf15e",
+      "spell": "bf165 - bf16e"
+      
+    },
+    {
+      "city": "Clamento",
+      "weapon": "bf185 - bf1a8",
+      "armor": "bf185 - bf1a8",
+      "spell": "bf1af - bf1b8"
+      
+    },
+    {
+      "city": "Parcelyte Kingdom",
+      "weapon": "bf1c3 - bf1f1",
+      "armor": "bf1c3 - bf1f1"
+      
+    },
+    {
+      "city": "Merix",
+      "weapon": "bf1f9 - bf20a",
+      "armor": "bf1f9 - bf20a",
+      "spell": "bf211 - bf217"
+      
+    },
+    {
+      "city": "Bound Kingdom",
+      "weapon": "bf217 - bf23f",
+      "armor": "bf217 - bf23f"
+      
+    },
+    {
+      "city": "Aleyn",
+      "weapon": "bf246 - bf268",
+      "armor": "bf246 - bf268",
+      "spell": "bf26f - bf275",
+      "misc": "bf275 - bf284"
+      
+    },
+    {
+      "city": "Gruberik",
+      "weapon": "bf287 - bf2Ab",
+      "armor": "bf287 - bf2Ab"
+      
+    },
+    {
+      "city": "Narcysus",
+      "weapon": "bf2BE - bf2d5",
+      "armor": "bf2BE - bf2d5",
+      "item": "bf2CA - bf2ec"
+      
+    },
+    {
+      "city": "Karlloon",
+      "weapon": "bf2ee - bf313",
+      "armor": "bf2ee - bf313",
+      "spell": "bf31a - bf323"
+      
+    },
+    {
+      "city": "Treadool",
+      "weapon": "bf323 - bf342",
+      "armor": "bf323 - bf342",
+      "item": "bf346 - bf35b"
+      
+    },
+    {
+      "city": "Forfeit Island",
+      "weapon": "bf36a - bf3b9",
+      "armor": "bf36a - bf3b9",
+      "misc": "bf35b - bf36a"
+      
+    },
+    {
+      "city": "Dankirk Kingdom",
+      "weapon": "bf405 - bf426",
+      "armor": "bf405 - bf426",
+      "spell": "bf42d - bf432"
+      
+    },
+    {
+      "city": "Auralio Kingdom",
+      "weapon": "bf432 - bf458",
+      "armor": "bf432 - bf458"
+      
+    },
+    {
+      "city": "Ferim Kingdom",
+      "weapon": "bf45e - bf477",
+      "armor": "bf45e - bf477",
+      "spell": "bf47e - bf482"
+      
+    },
+    {
+      "city": "Treble",
+      "weapon": "bf482 - bf4ac",
+      "armor": "bf482 - bf4ac"
+      
+    },
+    {
+      "city": "Portravia",
+      "weapon": "bf4b2 - bf4ed",
+      "armor": "bf4b2 - bf4ed",
+      "spell": "bf4f4 - bf4f8"
+      
+    },
+    {
+      "city": "Eserikto",
+      "weapon": "bf4fa - bf51f",
+      "armor": "bf4fa - bf51f",
+      "spell": "bf526 - bf52c"
+      
+    },
+    {
+      "city": "Barnan",
+      "weapon": "bf52c - bf552",
+      "armor": "bf52c - bf552"
+      
+    },
+    {
+      "city": "Durale",
+      "weapon": "bf559 - bf57f",
+      "armor": "bf559 - bf57f",
+      "spell": "bf586 - bf589",
+      "misc": "bf589 - bf598"
+    },
+    {
+      "city": "Preamarl",
+      "weapon": "bf5c3 - bf5e5",
+      "armor": "bf5c3 - bf5e5"
+      
+    },
+    {
+      "city": "Narvick",
+      "weapon": "bf5eb - bf61e",
+      "armor": "bf5eb - bf61e"
+      
+    }
+  ]
+}

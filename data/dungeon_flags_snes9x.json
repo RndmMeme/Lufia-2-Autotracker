@@ -1,0 +1,212 @@
+{
+  "0xA32A96": [
+    {
+      "location": "Foomy Woods",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Secret Skills Cave",
+      "flag": "01",
+      "binary": "0000 0001"
+    },
+    {
+      "location": "Cave to Sundletan",
+      "flag": "04",
+      "binary": "0000 0100"
+    },
+    {
+      "location": "Lake Cave",
+      "flag": "10",
+      "binary": "0001 0000"
+    }
+  ],
+  "0xA32A97": [
+    {
+      "location": "Ruby Cave Capsule",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Alunze Basement",
+      "flag": "01",
+      "binary": "0000 0001"
+    },
+    {
+      "location": "Alunze Cave",
+      "flag": "04",
+      "binary": "0000 0100"
+    },
+    {
+      "location": "Tanbel Tower",
+      "flag": "10",
+      "binary": "0001 0000"
+    }
+  ],
+  "0xA32A98": [
+    {
+      "location": "Cave Bridge",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Treasure Sword Shrine",
+      "flag": "04",
+      "binary": "0000 0100"
+    },
+    {
+      "location": "Ruby Cave",
+      "flag": "01",
+      "binary": "0000 0001"
+    },
+    {
+      "location": "Gordovan Tower",
+      "flag": "10",
+      "binary": "0001 0000"
+    }
+  ],
+  "0xA32A99": [
+    {
+      "location": "North Dungeon",
+      "flag": "04",
+      "binary": "0000 0100"
+    },
+    {
+      "location": "North Dungeon Capsule",
+      "flag": "01",
+      "binary": "0000 0001"
+    },
+    {
+      "location": "Ancient Tower",
+      "flag": "10",
+      "binary": "0001 0000"
+    },
+    {
+      "location": "Lighthouse",
+      "flag": "40",
+      "binary": "0100 0000"
+    }
+  ],
+  "0xA32A9A": [
+    {
+      "location": "Tower of Sacrifice",
+      "flag": "80",
+      "binary": "1000 0000"
+    },
+    {
+      "location": "Sacrifice Capsule",
+      "flag": "20",
+      "binary": "0010 0000"
+    },
+    {
+      "location": "Phantom Mountain",
+      "flag": "01",
+      "binary": "0000 0001"
+    }
+  ],
+  "0xA32A9B": [
+    {
+      "location": "Shaia Lab",
+      "flag": "08",
+      "binary": "0000 1000"
+    },
+    {
+      "location": "Flower Capsule",
+      "flag": "20",
+      "binary": "0010 0000"
+    },
+    {
+      "location": "Flower Mountain",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Karlloon Shrine",
+      "flag": "02",
+      "binary": "0000 0010"
+    }
+  ],
+  "0xA32A9C": [
+    {
+      "location": "Mnt.Of No Return",
+      "flag": "10",
+      "binary": "0001 0000"
+    },
+    {
+      "location": "Dankirk Dungeon",
+      "flag": "01",
+      "binary": "0000 0001"
+    },
+    {
+      "location": "Divine Shrine",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Ferim Tower",
+      "flag": "04",
+      "binary": "0000 0100"
+    }
+  ],
+  "0xA32A9D": [
+    {
+      "location": "Submarine Shrine",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Shrine of Vengeance",
+      "flag": "01",
+      "binary": "0000 0001"
+    },
+    {
+      "location": "Tower of Truth",
+      "flag": "04",
+      "binary": "0000 0100"
+    },
+    {
+      "location": "Dragon Mountain",
+      "flag": "10",
+      "binary": "0001 0000"
+    }
+  ],
+  "0xA32A9E": [
+    {
+      "location": "Stradah Tower",
+      "flag": "10",
+      "binary": "0001 0000"
+    },
+    {
+      "location": "Karmirno Tower",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Shuman Tower",
+      "flag": "08",
+      "binary": "0000 1000"
+    },
+    {
+      "location": "Gratze Castle",
+      "flag": "01",
+      "binary": "0000 0001"
+    }
+  ],
+  "0xA32A9F": [
+    {
+      "location": "Darbi Shrine",
+      "flag": "10",
+      "binary": "0001 0000"
+    },
+    {
+      "location": "Zeppy Cave",
+      "flag": "40",
+      "binary": "0100 0000"
+    },
+    {
+      "location": "Daos' Shrine",
+      "flag": "01",
+      "binary": "0000 0001"
+    }
+  ]
+}

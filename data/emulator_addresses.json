@@ -1,0 +1,60 @@
+{
+    "snes9x-x64.exe": [
+        {
+            "name": "Snes9x 1.62.3",
+            "gold_address": "0xA32D9E",
+            "character_slots": ["0xA32D8F", "0xA32D90", "0xA32D91", "0xA32D92"],
+            "capsule_slots_start": ["0xA334CF"],
+            "capsule_slots_end": ["0xA334D5"],
+            "inventory_range": ["0xA32DA1", "0xA32E60"],
+            "scenario_range": ["0xA32C32", "0xA32C34"],
+            "pointer_base_address": "0xA52330",
+            "shop_offset": "0xBF09F",
+            "capsule_sprite_offset": "0xBDCB8",
+            "map_address": "0xA3351E",
+            "spoiler_log_offset_start": "0x3EE1E1",
+            "spoiler_log_offset_end": "0x3EE8A5",
+            "dungeon_flag_start": "0xA32A96", 
+            "dungeon_flag_end": "0xA32A9F",
+            "dungeon_flag_addresses": "dungeon_flags_snes9x.json",
+            "transport_flag": "0xA32CF5",
+            "ship_x_fast_address": "0xA3379C",
+            "ship_x_slow_address": "0xA3379D",
+            "ship_y_fast_address": "0xA3379F",
+            "ship_y_slow_address": "0xA337A0",
+            "walk_x_fast_address": "0xA3377F",
+            "walk_x_slow_address": "0xA33780",
+            "walk_y_fast_address": "0xA33782",
+            "walk_y_slow_address": "0xA33783"
+
+        },
+        {
+            "name": "Snes9x 1.62.3-nwa",
+            "gold_address": "0xE2CF52",
+            "character_slots": ["0xE2CF43", "0xE2CF44", "0xE2CF45", "0xE2CF46"],
+            "capsule_slots_start": ["0xE2D683"],
+            "capsule_slots_end": ["0xE2D689"],
+            "inventory_range": ["0xE2CF55", "0xE2D014"],
+            "scenario_range": ["0xE2CDE6", "0xE2CDE8"],
+            "pointer_base_address": "0xBA0598",
+            "shop_offset": "0xBF09F",
+            "capsule_sprite_offset": "0xBDCB8",
+            "map_address": "0x",
+            "spoiler_log_offset_start": "0x3EE1E1",
+            "spoiler_log_offset_end": "0x3EE8A5",
+            "dungeon_flag_start": "0xE2CC4A", 
+            "dungeon_flag_end": "0xE2CC53",
+            "dungeon_flag_addresses": "dungeon_flags_snes9x-nwa.json",
+            "transport_flag": "0xE2CEA9",
+            "ship_x_fast_address": "0xE2D950",
+            "ship_x_slow_address": "0xE2D951",
+            "ship_y_fast_address": "0xE2D953",
+            "ship_y_slow_address": "0xE2D954",
+            "walk_x_fast_address": "0xE2D933",
+            "walk_x_slow_address": "0xE2D934",
+            "walk_y_fast_address": "0xE2D936",
+            "walk_y_slow_address": "0xE2D937"
+  
+        }
+    ]
+}
