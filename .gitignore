@@ -16,3 +16,7 @@ env/
 # Custom
 *.log
 layout_config.json
+
+# Build artifacts
+build/
+*.spec
