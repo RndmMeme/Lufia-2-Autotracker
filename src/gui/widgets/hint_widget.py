@@ -1,11 +1,13 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLabel
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 
 class HintWidget(QWidget):
     """
     Displays hints.
     Currently a simple text area, but can be expanded for specific rich text hints.
     """
+    hints_changed = pyqtSignal(str)
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()
@@ -21,6 +23,7 @@ class HintWidget(QWidget):
         self.text_area = QTextEdit()
         self.text_area.setReadOnly(False)
         self.text_area.setPlaceholderText("Type your hints/notes here...")
+        self.text_area.textChanged.connect(lambda: self.hints_changed.emit(self.text_area.toPlainText()))
         layout.addWidget(self.text_area)
         
     def set_content_font_size(self, size):

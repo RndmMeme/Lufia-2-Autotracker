@@ -1,8 +1,14 @@
 import os
+import sys
 from pathlib import Path
 
 # Base Paths
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+def get_base_dir():
+    if getattr(sys, 'frozen', False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent.parent.parent
+
+BASE_DIR = get_base_dir()
 DATA_DIR = BASE_DIR / "src" / "data"
 IMAGES_DIR = BASE_DIR / "images"
 

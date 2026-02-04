@@ -9,7 +9,7 @@ class DraggableMaidenLabel(QLabel):
     def __init__(self, name, parent=None):
         super().__init__(parent)
         self.name = name
-        self.setFixedSize(40, 40)
+        self.setFixedSize(50, 50)
         self.setScaledContents(True)
         self.setToolTip(name)
         self.edit_mode = False
@@ -63,11 +63,11 @@ class MaidenWidget(QWidget):
         
         self.init_ui()
         self.connect_signals()
-        
+
     def init_ui(self):
         # No Layout
         
-        spacing = 50
+        spacing = 60
         x = 10
         y = 10
         

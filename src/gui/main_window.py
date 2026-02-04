@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QMainWindow, QDockWidget, QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMainWindow, QDockWidget, QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QMenu, QToolBar, QMessageBox, QFileDialog, QInputDialog
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QSettings
 import logging
 
 from core.state_manager import StateManager
@@ -19,12 +19,11 @@ from .dialogs.item_search_dialog import ItemSearchDialog
 from PyQt6.QtWidgets import QMenu
 
 class MainWindow(QMainWindow):
-    def __init__(self, state_manager, data_loader, logic_engine, data_listener):
+    def __init__(self, state_manager, data_loader, logic_engine):
         super().__init__()
         self.state_manager = state_manager
         self.data_loader = data_loader
         self.logic_engine = logic_engine
-        self.data_listener = data_listener
         self.layout_manager = LayoutManager()
         
         self.setWindowTitle("Lufia 2 Auto Tracker v1.4")
@@ -33,9 +32,9 @@ class MainWindow(QMainWindow):
         # --- Menu Ribbon ---
         self.menu_ribbon = MenuRibbon()
         self.setMenuWidget(self.menu_ribbon) # Use setMenuWidget for custom QWidget ribbon
-        self._connect_menu_signals()
 
         self._setup_ui()
+        self._connect_menu_signals()
         self._connect_signals()
         
         # Connect Listener Signals to UI Feedback
@@ -44,6 +43,8 @@ class MainWindow(QMainWindow):
         self._active_search_dialogs = {}
 
         # Initial Refresh to apply Logic
+        # Initial Refresh to apply Logic
+        self._load_settings()
         self._refresh_all()
 
     def _setup_ui(self):
@@ -60,6 +61,8 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.font_adj_toggled.connect(self._toggle_font_controls)
         self.menu_ribbon.header_color_requested.connect(self._pick_header_color)
         self.menu_ribbon.player_color_requested.connect(self._pick_player_color)
+        self.menu_ribbon.player_shape_requested.connect(self._on_player_shape_requested)
+        self.menu_ribbon.player_size_requested.connect(self.map_widget.set_player_scale)
         self.menu_ribbon.edit_layout_toggled.connect(self._set_edit_mode)
         
         # Sync Requests
@@ -80,6 +83,7 @@ class MainWindow(QMainWindow):
         color = QColorDialog.getColor(initial=Qt.GlobalColor.darkGray, parent=self, title="Pick Header Color")
         if color.isValid():
             hex_color = color.name()
+            self._header_color = hex_color # Store for persistence
             for dock in self.findChildren(PersistentDockWidget):
                 dock.title_bar.set_header_color(hex_color)
 
@@ -88,6 +92,7 @@ class MainWindow(QMainWindow):
         color = QColorDialog.getColor(initial=Qt.GlobalColor.magenta, parent=self, title="Pick Player Color")
         if color.isValid():
             hex_color = color.name()
+            self._player_color = hex_color # Store for persistence
             self.map_widget.set_player_arrow_color(hex_color)
 
     def _set_edit_mode(self, enabled: bool):
@@ -98,7 +103,7 @@ class MainWindow(QMainWindow):
         self.maiden_widget.set_edit_mode(enabled)
         
     def _handle_reset(self):
-        self.state_manager.reset_overrides()
+        self.state_manager.reset_state()
 
     def _handle_save(self):
         from PyQt6.QtWidgets import QFileDialog
@@ -125,51 +130,46 @@ class MainWindow(QMainWindow):
         Active = Start Listening.
         Inactive = Stop Listening.
         """
-        if active:
-            if self.data_listener.start_listening():
-                print("Auto Tracking Started")
-            else:
-                # Failed to start
-                self.menu_ribbon._toggle_auto() # Revert UI
-        else:
-            self.data_listener.stop_listening()
-            print("Auto Tracking Stopped")
+        self.state_manager.toggle_auto_tracking(active)
 
     def _handle_sync_request(self, category):
         """
         Sync: Fetch snapshot.
-        If Auto is OFF: Start Listener -> Wait for 1 update -> Stop.
-        If Auto is ON: Force update (Listener is already running, so maybe we just wait? Or request?)
+        If Auto is OFF: Start Helper momentarily.
         """
         print(f"Sync Requested: {category}")
-        # Logic depends on C# helper protocol.
-        # Assuming helper sends data periodically? 
-        # If so, just waiting is enough?
-        # User said "Sync... overwriting user input".
-        
-        # For now, if we are NOT listening, we should momentarily listen.
-        if not self.data_listener.server.isListening():
-             if self.data_listener.start_listening():
-                 # We need to know this is a "One Shot".
-                 # We can flag it?
-                 self._is_syncing = True
+        # Simplistic implementation: Enable auto tracking if not active
+        if not self.state_manager.helper.running:
+             self.state_manager.toggle_auto_tracking(True)
+             self._is_syncing = True
+
+    def _on_player_shape_requested(self, shape):
+        if shape == "sprite":
+             self._update_player_sprite_if_active()
+             self.map_widget.set_player_arrow_shape("sprite")
         else:
-             # Already listening.
-             pass
+             self.map_widget.set_player_arrow_shape(shape)
+
+    def _update_player_sprite_if_active(self):
+        leader = self.state_manager.get_active_party_leader()
+        if leader:
+             chars_data = self.data_loader.load_json("characters.json")
+             if leader in chars_data:
+                  path = self.data_loader.resolve_image_path(chars_data[leader]["image_path"])
+                  self.map_widget.set_player_sprite_image(path)
 
     def _on_auto_update_received(self, payload):
         """Called when StateManager processes an update."""
         # If we were doing a one-shot sync, stop now.
         if getattr(self, '_is_syncing', False):
-            self.data_listener.stop_listening()
+            self.state_manager.toggle_auto_tracking(False)
             self._is_syncing = False
             print("Sync Snapshot Complete")
         
-        # If Auto is active, we keep listening.
-        # Payload processing happened in StateManager.
-        
         # Just refresh the UI to show new states
         self._refresh_all()
+        # Ensure sprite image is up to date if reusing "sprite" mode
+        self._update_player_sprite_if_active()
 
     def _setup_docking_ui(self):
         # Allow nested docks
@@ -177,20 +177,25 @@ class MainWindow(QMainWindow):
 
         # --- Items Dock (Left, Top) ---
         self.items_dock = PersistentDockWidget("Items / Spells", self)
+        self.items_dock.setObjectName("items_dock")
         self.items_widget = ItemsWidget(self.state_manager)
         self.items_dock.setWidget(self.items_widget)
         self.items_dock.setMinimumSize(100, 100)
+        self.items_dock.setMaximumWidth(350) # Prevent taking too much horizontal space
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.items_dock)
 
         # --- Hints Dock (Left, Bottom) ---
         self.hints_dock = PersistentDockWidget("Hints", self)
+        self.hints_dock.setObjectName("hints_dock")
         self.hint_widget = HintWidget()
         self.hints_dock.setWidget(self.hint_widget)
         self.hints_dock.setMinimumSize(100, 100)
+        self.hints_dock.setMaximumWidth(350) # Prevent taking too much horizontal space
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.hints_dock)
         
         # --- Characters Dock (Top Right for T-Shape) ---
         self.chars_dock = PersistentDockWidget("Characters", self)
+        self.chars_dock.setObjectName("chars_dock")
         self.characters_widget = CharactersWidget(self.data_loader, self.state_manager, self.layout_manager)
         self.chars_dock.setWidget(self.characters_widget)
         self.chars_dock.setMinimumSize(100, 150)
@@ -198,6 +203,7 @@ class MainWindow(QMainWindow):
         
         # --- Tools Dock ---
         self.tools_dock = PersistentDockWidget("Tools", self)
+        self.tools_dock.setObjectName("tools_dock")
         self.tools_widget = ToolsWidget(self.data_loader, self.layout_manager)
         self.tools_dock.setWidget(self.tools_widget)
         self.tools_dock.setMinimumSize(100, 60)
@@ -205,6 +211,7 @@ class MainWindow(QMainWindow):
 
         # --- Maidens Dock ---
         self.maidens_dock = PersistentDockWidget("Maidens", self)
+        self.maidens_dock.setObjectName("maidens_dock")
         self.maiden_widget = MaidenWidget(self.data_loader, self.state_manager, self.layout_manager)
         self.maidens_dock.setWidget(self.maiden_widget)
         self.maidens_dock.setMinimumSize(100, 60)
@@ -212,6 +219,7 @@ class MainWindow(QMainWindow):
         
         # --- Keys Dock ---
         self.scenario_dock = PersistentDockWidget("Keys", self)
+        self.scenario_dock.setObjectName("scenario_dock")
         self.scenario_widget = ScenarioWidget(self.data_loader, self.layout_manager)
         self.scenario_dock.setWidget(self.scenario_widget)
         self.scenario_dock.setMinimumSize(100, 80)
@@ -219,6 +227,7 @@ class MainWindow(QMainWindow):
         
         # --- Map Dock (Far Right) ---
         self.map_dock = PersistentDockWidget("World Map", self)
+        self.map_dock.setObjectName("map_dock")
         self.map_widget = MapWidget(self.data_loader)
         self.map_dock.setWidget(self.map_widget)
         self.map_dock.setMinimumSize(200, 200)
@@ -293,7 +302,39 @@ class MainWindow(QMainWindow):
         self.state_manager.character_assigned.connect(self._on_character_assigned)
         self.state_manager.character_unassigned.connect(self.map_widget.remove_character_sprite)
         self.state_manager.character_changed.connect(lambda n, o: self.characters_widget.refresh_state())
+        
+        # Map Sprite Removal Interactivity
+        self.map_widget.sprite_removed.connect(self.state_manager.remove_character_assignment)
+        
+        # Reset Signal
+        self.state_manager.reset_occurred.connect(self._on_reset_occurred)
+        
+        # New Signals (v1.4 Refinements)
+        self.menu_ribbon.sprite_visibility_toggled.connect(self.map_widget.set_sprites_visibility)
+        self.state_manager.shop_items_changed.connect(lambda _: self.items_widget.refresh_from_state())
+        
+        # Hints
+        if self.hint_widget:
+            self.hint_widget.hints_changed.connect(self.state_manager.update_hints)
+            self.state_manager.hints_changed.connect(self.hint_widget.set_hints)
 
+    def _on_reset_occurred(self):
+        """Clears UI elements that aren't strictly data-bound to StateManager properties (like Hints/Map Sprites)."""
+        # Clear Hints
+        if self.hint_widget:
+            self.hint_widget.set_hints("")
+            
+        # Clear Map Sprites/Player
+        if self.map_widget:
+            self.map_widget.reset()
+            
+        # Clear Items/Spells
+        if self.items_widget:
+            self.items_widget.clear_all()
+            
+        # Refresh Logic (Just in case)
+        self._refresh_all()
+        
     def _refresh_all(self):
         """Re-runs logic engine and pushes updates."""
         # Get Accessibility Map
@@ -366,14 +407,29 @@ class MainWindow(QMainWindow):
         chars_data = self.data_loader.load_json("characters.json")
         sorted_names = sorted(chars_data.keys())
         
-        # Filter: which are available? logic v1.3: "not active and not colored"
-        # In our state manager: active_characters = {name: bool}
-        active_chars = self.state_manager.active_characters
+        # Filter: Exclude characters currently in active party
+        # StateManager knows "active_party" (The 4 humans).
+        active_party = self.state_manager.active_party
         
+        # Also exclude characters that are already obtained/assigned?
+        # v1.3: "not active and not colored". Colored = Obtained/Assigned.
+        obtained_map = self.state_manager.obtained_characters 
+        
+        # Get assigned chars
+        assigned_chars = set(self.state_manager._character_locations.values())
+
         for char in sorted_names:
-            if not active_chars.get(char, False):
-                action = menu.addAction(char)
-                action.triggered.connect(lambda c, ch=char: self.state_manager.assign_character_to_location(location_name, ch))
+            if char in ["Claire", "Lisa", "Marie"]: continue
+            
+            # Allow active party members IF they are not currently assigned to a location
+            # (Matches v1.3 "User can assign them map locations")
+                
+            # If already assigned to ANY location, skip (must remove first to re-assign)
+            if char in assigned_chars:
+                continue
+                
+            action = menu.addAction(char)
+            action.triggered.connect(lambda c, ch=char: self.state_manager.assign_character_to_location(location_name, ch))
         
         # Option to Remove existing?
         existing = self.state_manager.get_character_at_location(location_name)
@@ -381,12 +437,22 @@ class MainWindow(QMainWindow):
             menu.addSeparator()
             rem_action = menu.addAction(f"Remove {existing}")
             rem_action.triggered.connect(lambda: self.state_manager.remove_character_assignment(location_name))
+            
+        if menu.isEmpty():
+            disabled = menu.addAction("No characters available")
+            disabled.setEnabled(False)
 
         menu.exec(self.map_widget.cursor().pos())
 
     def _on_character_assigned(self, location, name):
         # Resolve path
         chars_data = self.data_loader.load_json("characters.json")
+        
+        # Fix for crash if name not in json (e.g. Shaggy)
+        if name not in chars_data:
+            logging.warning(f"Character '{name}' not found in characters.json. Skipping map sprite.")
+            return
+
         rel_path = chars_data[name]["image_path"]
         full_path = self.data_loader.resolve_image_path(rel_path)
         
@@ -416,6 +482,62 @@ class MainWindow(QMainWindow):
         self.items_widget.add_item(location, item_name)
         # Future: Update StateManager if needed?
 
+    def closeEvent(self, event):
+        # Save Window State
+        settings = QSettings("Lufia2Tracker", "MainWindow")
+        try:
+             settings.setValue("geometry", self.saveGeometry())
+             settings.setValue("windowState", self.saveState())
+             
+             # Save Persistence preferences
+             settings.setValue("headerColor", getattr(self, "_header_color", ""))
+             settings.setValue("playerColor", getattr(self, "_player_color", ""))
+             settings.setValue("playerShape", getattr(self.map_widget, "_player_shape", "triangle"))
+             settings.setValue("playerScale", getattr(self.map_widget, "_player_scale", 1.0))
+
+        except Exception as e:
+             logging.error(f"Failed to save settings: {e}")
+        
+        # Shutdown logic
+        if hasattr(self, 'auto_tracker_thread') and self.auto_tracker_thread and self.auto_tracker_thread.isRunning():
+            self.auto_tracker_thread.stop()
+            self.auto_tracker_thread.wait()
+            
+        super().closeEvent(event)
+
+    def _load_settings(self):
+        settings = QSettings("Lufia2Tracker", "MainWindow")
+        geometry = settings.value("geometry")
+        state = settings.value("windowState")
+        
+        if geometry:
+            self.restoreGeometry(geometry)
+        if state:
+            self.restoreState(state)
+            
+        # Restore Preferences
+        h_color = settings.value("headerColor")
+        if h_color:
+            self._header_color = h_color
+            for dock in self.findChildren(PersistentDockWidget):
+                dock.title_bar.set_header_color(h_color)
+                
+        p_color = settings.value("playerColor")
+        if p_color:
+            self._player_color = p_color
+            self.map_widget.set_player_arrow_color(p_color)
+            
+        p_shape = settings.value("playerShape")
+        if p_shape:
+            # If shape was sprite, this might fail if leader isn't ready, but logic handles update later?
+            # self.map_widget.set_player_arrow_shape(p_shape)
+            # Actually, MainWindow._on_player_shape_requested calls set_player_arrow_shape AND logic.
+            # Let's call our handler to ensure consistency
+            self._on_player_shape_requested(p_shape)
+        
+        p_scale = settings.value("playerScale", type=float)
+        if p_scale:
+            self.map_widget.set_player_scale(p_scale)
 
 
 class PersistentDockWidget(QDockWidget):
@@ -470,3 +592,7 @@ class PersistentDockWidget(QDockWidget):
             # We can allow hide, or ignore if we want them 'undeletable'. 
             # Let's allow hide so they can clear clutter, but they can re-open via View menu (TODO).
             super().closeEvent(event)
+
+
+
+

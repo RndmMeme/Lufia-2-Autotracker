@@ -99,7 +99,13 @@ class DockTitleBar(QWidget):
         self.dock_widget.setFloating(not self.dock_widget.isFloating())
 
     def set_header_color(self, color_hex):
-        self.setStyleSheet(f"background-color: {color_hex}; color: white; border-bottom: 1px solid #555;")
+        from PyQt6.QtGui import QColor
+        bg = QColor(color_hex)
+        # Calculate perceived brightness (standard formula)
+        brightness = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000
+        text_color = "black" if brightness > 128 else "white"
+        
+        self.setStyleSheet(f"background-color: {color_hex}; color: {text_color}; border-bottom: 1px solid #555;")
         
     def _on_float_changed(self, is_floating):
         if is_floating:

@@ -45,3 +45,29 @@ v1.4.1 Update - Free Placement & Polish
     *   **Granular Filters**: Added toggles in the "Auto" menu to enable/disable tracking for specific categories (Chars, Tools, Keys, Maidens, Position).
 *   **Map**:
     *   **Player Color**: Added "Pick Player Color" option to customize the tracker arrow.
+
+v1.4.2 Update - Map & Marker Enhancements
+-----------------------------------------
+*   **Player Marker**:
+    *   **Size Control**: Adjustable player marker size (1x to 4x) via "Tracker > Player Size".
+    *   **Sprite Mode**: Option to use the Active Party Leader's sprite as the player marker ("Tracker > Player Shape").
+    *   **Logic**: Sprite marker automatically updates when the in-game party leader changes (via auto-tracking).
+*   **Map Fidelity**:
+    *   **Improved Scaling**: Implemented `SmoothPixmapTransform` to reduce pixelation artifacts when resizing the map.
+    *   **Responsive Resizing**: Fixed issue where map contents did not scale correctly with the window.
+    *   **Capsule Logic**: Implemented accurate order-based mapping for Capsule Sprites (matching v1.3 logic).
+*   **Layout Refinements**:
+    *   **Dock Sizing**: Constrained Items and Hints widgets to prevent them from consuming excessive screen space.
+    *   **Manual Assignment**: Restored context menus for manually assigning characters to locations.
+
+v1.4.3 Update - Emulator Compatibility
+--------------------------------------
+*   **Expanded Emulator Support**:
+    *   **Snes9x-nwa**: Added support for split-memory bank layouts (Dungeon Flags at 0xE2...).
+    *   **bsnes**: Verified compatibility.
+*   **Robust Scanning**:
+    *   New "Dual Scan" logic dynamically identifies WRAM and ROM regions regardless of emulator memory model.
+    *   Sprite Table scanning ensures correct ROM mapping even in Headerless/Heap-based environments.
+*   **Fixes**:
+    *   Fixed issue where "Cleared Dungeons" were not detected on NWA versions.
+    *   Improved config file loading reliability.

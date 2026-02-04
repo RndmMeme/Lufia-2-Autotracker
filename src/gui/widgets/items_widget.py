@@ -134,12 +134,12 @@ class ItemsWidget(QWidget):
 
     def add_item(self, location, item_name):
         """Adds a new item entry."""
-        # Check duplicates
-        for entry in self.entries:
-            if entry['name'] == item_name and entry['location'] == location:
-                return # Already exists
+        # Use StateManager as source of truth
+        self.state_manager.register_shop_item(location, item_name)
+        # self.refresh_list() # Signal will trigger refresh
         
-        self.entries.append({'location': location, 'name': item_name})
+    def refresh_from_state(self):
+        self.entries = self.state_manager.shop_items
         self.refresh_list()
         
     def refresh_list(self):
@@ -150,8 +150,9 @@ class ItemsWidget(QWidget):
                 child.widget().deleteLater()
                 
         # Rebuild
+        font_size = getattr(self, 'current_font_size', 11)
         for entry in self.entries:
-            row = AddedItemEntry(entry['location'], entry['name'])
+            row = AddedItemEntry(entry['location'], entry['name'], font_size=font_size)
             row.remove_requested.connect(self.remove_item)
             self.list_layout.addWidget(row)
             

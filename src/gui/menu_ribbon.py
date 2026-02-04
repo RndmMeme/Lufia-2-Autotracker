@@ -16,6 +16,9 @@ class MenuRibbon(QWidget):
     sync_requested = pyqtSignal(str) # "all", "tools", "keys", etc.
     auto_toggled = pyqtSignal(bool) # True=Show Checkboxes/Start, False=Hide/Stop
     player_color_requested = pyqtSignal()
+    player_shape_requested = pyqtSignal(str)
+    player_size_requested = pyqtSignal(float) # New Signal
+    sprite_visibility_toggled = pyqtSignal(str, bool) # category, visible
     font_adj_toggled = pyqtSignal(bool)
     header_color_requested = pyqtSignal()
     
@@ -28,6 +31,7 @@ class MenuRibbon(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
+        # ... (Init Layout) ...
         # Main Layout
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -70,20 +74,6 @@ class MenuRibbon(QWidget):
         options_menu.addAction("Save", self.save_requested.emit)
         options_menu.addAction("Load", self.load_requested.emit)
         
-        options_menu.addSeparator()
-        self.font_adj_action = QAction("Show Font Adj", self)
-        self.font_adj_action.setCheckable(True)
-        self.font_adj_action.toggled.connect(self.font_adj_toggled.emit)
-        self.font_adj_action.toggled.connect(self.font_adj_toggled.emit)
-        options_menu.addAction(self.font_adj_action)
-        
-        self.edit_layout_action = QAction("Edit Layout", self)
-        self.edit_layout_action.setCheckable(True)
-        self.edit_layout_action.toggled.connect(self.edit_layout_toggled.emit)
-        options_menu.addAction(self.edit_layout_action)
-        
-        options_menu.addAction("Header Color", self.header_color_requested.emit)
-
         # --- Tracker (Left) ---
         tracker_menu = self.menu_bar.addMenu("Tracker")
         
@@ -103,10 +93,62 @@ class MenuRibbon(QWidget):
         self.auto_action = QAction("Auto", self)
         self.auto_action.triggered.connect(self._toggle_auto)
         tracker_menu.addAction(self.auto_action)
+
+        # --- Custom (Middle) ---
+        custom_menu = self.menu_bar.addMenu("Custom")
         
-        tracker_menu.addAction("Player Color", self.player_color_requested.emit)
+        # Layout & Visuals
+        self.font_adj_action = QAction("Show Font Adj", self)
+        self.font_adj_action.setCheckable(True)
+        self.font_adj_action.toggled.connect(self.font_adj_toggled.emit)
+        custom_menu.addAction(self.font_adj_action)
         
-        # --- Help / About (Right of Tracker) ---
+        self.edit_layout_action = QAction("Edit Layout", self)
+        self.edit_layout_action.setCheckable(True)
+        self.edit_layout_action.toggled.connect(self.edit_layout_toggled.emit)
+        custom_menu.addAction(self.edit_layout_action)
+        
+        custom_menu.addAction("Header Color", self.header_color_requested.emit)
+        
+        custom_menu.addSeparator()
+        
+        # Player Marker
+        custom_menu.addAction("Player Color", self.player_color_requested.emit)
+        
+        # Player Shape Submenu
+        shape_menu = QMenu("Player Shape", self)
+        shape_menu.addAction("Triangle", lambda: self.player_shape_requested.emit("triangle"))
+        shape_menu.addAction("Rhombus", lambda: self.player_shape_requested.emit("rhombus"))
+        shape_menu.addAction("Square", lambda: self.player_shape_requested.emit("square"))
+        shape_menu.addAction("Active Sprite", lambda: self.player_shape_requested.emit("sprite"))
+        custom_menu.addMenu(shape_menu)
+        
+        # Player Size Submenu
+        size_menu = QMenu("Player Size", self)
+        size_menu.addAction("Normal (1x)", lambda: self.player_size_requested.emit(1.0))
+        size_menu.addAction("2x", lambda: self.player_size_requested.emit(2.0))
+        size_menu.addAction("3x", lambda: self.player_size_requested.emit(3.0))
+        size_menu.addAction("4x", lambda: self.player_size_requested.emit(4.0))
+        custom_menu.addMenu(size_menu)
+        
+        # Show Sprites Submenu
+        sprite_menu = QMenu("Show Sprites", self)
+        
+        self.sprite_actions = {}
+        for cat in ["All", "Chars", "Capsules", "Maidens"]:
+            action = QAction(cat, self)
+            action.setCheckable(True)
+            action.setChecked(True)
+            # Use lower case for internal keys
+            action.toggled.connect(lambda checked, c=cat.lower(): self.sprite_visibility_toggled.emit(c, checked))
+            if cat == "All":
+                 action.toggled.connect(self._on_all_sprites_toggled)
+            self.sprite_actions[cat] = action
+            sprite_menu.addAction(action)
+            
+        custom_menu.addMenu(sprite_menu)
+        
+        # --- Help / About (Right of Custom) ---
         about_action = self.menu_bar.addAction("About")
         about_action.triggered.connect(self._show_about)
         
@@ -188,6 +230,11 @@ class MenuRibbon(QWidget):
         for k, cb in self.checkboxes.items():
             if k != "All":
                 cb.setChecked(checked)
+
+    def _on_all_sprites_toggled(self, checked):
+        for k, action in self.sprite_actions.items():
+            if k != "All":
+                action.setChecked(checked)
 
     def _on_checkbox_change(self):
         # Gather state
