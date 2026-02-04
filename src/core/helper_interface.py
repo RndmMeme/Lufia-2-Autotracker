@@ -109,7 +109,14 @@ class HelperInterface:
 
     def launch_helper(self):
         """Launches the C# Helper executable."""
-        abs_path = Path.cwd() / HELPER_PATH
+        import sys
+        if getattr(sys, 'frozen', False):
+            # PyInstaller Temp Directory
+            base_path = Path(sys._MEIPASS)
+        else:
+            base_path = Path.cwd()
+
+        abs_path = base_path / HELPER_PATH
         if not abs_path.exists():
             logging.error(f"Helper not found at {abs_path}")
             return

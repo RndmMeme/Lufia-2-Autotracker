@@ -58,14 +58,37 @@ class StateManager(QObject):
         # --- Load Location Mapping ---
         try:
              import os
-             mapping_path = os.path.join("src", "data", "location_name_mapping.json")
+             import sys
+             
+             if getattr(sys, 'frozen', False):
+                 base_path = sys._MEIPASS
+                 mapping_path = os.path.join(base_path, "src", "data", "location_name_mapping.json")
+             else:
+                 mapping_path = os.path.join("src", "data", "location_name_mapping.json")
+
              with open(mapping_path, 'r') as f:
-                 forward_map = json.load(f)
-                 # Reverse the map: "Lexis Shaia Laboratory" -> "Shaia Lab"
-                 self._spoiler_location_map = {v: k for k, v in forward_map.items()}
+                 self._location_mapping = json.load(f)
+             logging.info(f"Loaded {len(self._location_mapping)} location mappings.")
         except Exception as e:
             logging.error(f"Failed to load location mapping: {e}")
-            self._spoiler_location_map = {}
+            self._location_mapping = {}
+
+    def _normalize_location_name(self, raw_loc):
+        """
+        Normalize location name from spoiler log using loaded mapping.
+        Replicates v1.3 Logic: Linear search to find FIRST matching internal name.
+        """
+        if not raw_loc:
+            return "Unknown"
+            
+        # Linear search for FIRST match (Value == raw_loc)
+        # This is critical because multiple Internal Locations (Keys) map to the SAME Spoiler Name (Value).
+        # v1.3 relies on finding the FIRST one (e.g. "Ruby Cave Capsule" before "Ruby Cave")
+        for internal_name, spoiler_name in self._location_mapping.items():
+            if spoiler_name == raw_loc:
+                return internal_name
+                
+        return raw_loc
         
     # --- Public Accessors ---
     
@@ -444,9 +467,7 @@ class StateManager(QObject):
         
         self.reset_occurred.emit()
 
-    def _normalize_location_name(self, spoiler_name: str) -> str:
-        """Converts spoiler log name to internal location name."""
-        return self._spoiler_location_map.get(spoiler_name, spoiler_name)
+
 
     def register_spoiler_location(self, location: str, character_name: str):
         """

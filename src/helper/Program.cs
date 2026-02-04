@@ -305,20 +305,32 @@ namespace Lufia2AutoTracker.Helper
                     using var doc = JsonDocument.Parse(json);
                     var list = new List<GameData.DungeonDef>();
                     
+                    int minAddr = int.MaxValue;
+                    var tempItems = new List<(int addr, JsonElement val)>();
+
+                    // First pass: Find Min and Collect
                     foreach (var prop in doc.RootElement.EnumerateObject())
                     {
                         int addr = Convert.ToInt32(prop.Name, 16);
-                        foreach (var item in prop.Value.EnumerateArray())
+                        if (addr < minAddr) minAddr = addr;
+                        tempItems.Add((addr, prop.Value));
+                    }
+                    
+                    // Second pass: Add with Normalized Offset
+                    foreach (var item in tempItems)
+                    {
+                        int normalizedOffset = item.addr - minAddr;
+                        foreach (var subEntry in item.val.EnumerateArray())
                         {
                             list.Add(new GameData.DungeonDef {
-                                Address = addr,
-                                Location = item.GetProperty("location").GetString(),
-                                Flag = item.GetProperty("flag").GetString()
+                                Address = normalizedOffset, // Store 0, 1, 2...
+                                Location = subEntry.GetProperty("location").GetString(),
+                                Flag = subEntry.GetProperty("flag").GetString()
                             });
                         }
                     }
                     GameData.LoadDungeons(list);
-                    Console.WriteLine($"[Config] Loaded Dungeons from {targetPath}");
+                    Console.WriteLine($"[Config] Loaded Dungeons from {targetPath} (Base: 0x{minAddr:X})");
                 }
                 else
                 {

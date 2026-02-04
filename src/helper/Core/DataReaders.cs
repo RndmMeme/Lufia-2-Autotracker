@@ -251,9 +251,8 @@ namespace Lufia2AutoTracker.Helper.Core
 
             foreach (var d in GameData.Dungeons)
             {
-                // Logic: relative_offset = address - start
-                // v1.3: address in JSON is absolute.
-                int relativeOffset = d.Address - start;
+                // Logic: d.Address is now Normalized (0, 1, 2...)
+                int relativeOffset = d.Address;
                 if (relativeOffset >= 0 && relativeOffset < size)
                 {
                      byte val = flags[relativeOffset];
