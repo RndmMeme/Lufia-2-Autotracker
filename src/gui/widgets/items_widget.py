@@ -57,8 +57,10 @@ class ItemsWidget(QWidget):
     """
     Refactor of the v1.3 Item Canvas list.
     Displays added items/spells.
-    Includes Sort and Clear buttons.
+    Includes Add, Sort and Clear buttons.
     """
+    add_requested = pyqtSignal()
+    
     def __init__(self, state_manager, parent=None):
         super().__init__(parent)
         self.state_manager = state_manager
@@ -80,11 +82,12 @@ class ItemsWidget(QWidget):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(2)
         
+        self.btn_add = QPushButton("Add")
         self.btn_sort_loc = QPushButton("Sort Loc")
         self.btn_sort_item = QPushButton("Sort Item")
         self.btn_clear = QPushButton("Clear")
         
-        for btn in [self.btn_sort_loc, self.btn_sort_item, self.btn_clear]:
+        for btn in [self.btn_add, self.btn_sort_loc, self.btn_sort_item, self.btn_clear]:
             btn.setStyleSheet("""
                 QPushButton {
                     background-color: black;
@@ -98,6 +101,7 @@ class ItemsWidget(QWidget):
                 }
             """)
         
+        btn_layout.addWidget(self.btn_add)
         btn_layout.addWidget(self.btn_sort_loc)
         btn_layout.addWidget(self.btn_sort_item)
         btn_layout.addWidget(self.btn_clear)
@@ -120,6 +124,7 @@ class ItemsWidget(QWidget):
         layout.addWidget(self.scroll_area)
         
         # Button Logic
+        self.btn_add.clicked.connect(lambda: self.add_requested.emit())
         self.btn_sort_loc.clicked.connect(self.sort_by_location)
         self.btn_sort_item.clicked.connect(self.sort_by_item)
         self.btn_clear.clicked.connect(self.clear_all)

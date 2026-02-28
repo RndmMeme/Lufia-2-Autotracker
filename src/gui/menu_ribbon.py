@@ -18,6 +18,14 @@ class MenuRibbon(QWidget):
     player_color_requested = pyqtSignal()
     player_shape_requested = pyqtSignal(str)
     player_size_requested = pyqtSignal(float) # New Signal
+    
+    # New Signals for City/Location Styling & Reset
+    city_color_requested = pyqtSignal()
+    city_shape_requested = pyqtSignal(str)
+    dungeon_shape_requested = pyqtSignal(str)
+    reset_pictures_requested = pyqtSignal()
+    save_layout_default_requested = pyqtSignal()
+    
     sprite_visibility_toggled = pyqtSignal(str, bool) # category, visible
     font_adj_toggled = pyqtSignal(bool)
     header_color_requested = pyqtSignal()
@@ -130,6 +138,34 @@ class MenuRibbon(QWidget):
         size_menu.addAction("3x", lambda: self.player_size_requested.emit(3.0))
         size_menu.addAction("4x", lambda: self.player_size_requested.emit(4.0))
         custom_menu.addMenu(size_menu)
+
+        custom_menu.addSeparator()
+
+        # City Styling
+        custom_menu.addAction("City Color", self.city_color_requested.emit)
+        city_shape_menu = QMenu("City Shape", self)
+        city_shape_menu.addAction("Circle", lambda: self.city_shape_requested.emit("circle"))
+        city_shape_menu.addAction("Square", lambda: self.city_shape_requested.emit("square"))
+        city_shape_menu.addAction("Rhombus", lambda: self.city_shape_requested.emit("rhombus"))
+        city_shape_menu.addAction("Triangle", lambda: self.city_shape_requested.emit("triangle"))
+        custom_menu.addMenu(city_shape_menu)
+
+        dungeon_shape_menu = QMenu("Dungeon Shape", self)
+        dungeon_shape_menu.addAction("Circle", lambda: self.dungeon_shape_requested.emit("circle"))
+        dungeon_shape_menu.addAction("Square", lambda: self.dungeon_shape_requested.emit("square"))
+        dungeon_shape_menu.addAction("Rhombus", lambda: self.dungeon_shape_requested.emit("rhombus"))
+        dungeon_shape_menu.addAction("Triangle", lambda: self.dungeon_shape_requested.emit("triangle"))
+        custom_menu.addMenu(dungeon_shape_menu)
+        custom_menu.addSeparator()
+
+
+        
+        # Reset / Save Picture Positions
+        save_layout_action = custom_menu.addAction("Save Current Layout as Default", self.save_layout_default_requested.emit)
+        save_layout_action.setVisible(False)
+        custom_menu.addAction("Reset Picture Positions", self.reset_pictures_requested.emit)
+
+        custom_menu.addSeparator()
         
         # Show Sprites Submenu
         sprite_menu = QMenu("Show Sprites", self)

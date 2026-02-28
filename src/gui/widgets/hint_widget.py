@@ -33,4 +33,5 @@ class HintWidget(QWidget):
         self.text_area.setFont(font)
         
     def set_hints(self, text):
-        self.text_area.setText(text)
+        if self.text_area.toPlainText() != text:
+            self.text_area.setText(text)

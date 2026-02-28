@@ -72,26 +72,33 @@ class MaidenWidget(QWidget):
         y = 10
         
         for name in self.maidens:
-            # Check position
-            pos = self.layout_manager.get_position("maidens", name)
-            if pos:
-                final_x, final_y = pos
-            else:
-                final_x = x
-                final_y = y
-                x += spacing
-                
             lbl = DraggableMaidenLabel(name, self)
-            lbl.move(final_x, final_y)
-            lbl.show()
-            
             lbl.clicked.connect(self.toggle_maiden)
             lbl.position_changed.connect(self._on_label_moved)
-            
             self.labels[name] = lbl
             
             # Initial update
             self.update_icon(lbl, name, False)
+            lbl.show()
+
+        self.update_positions()
+
+    def update_positions(self):
+        spacing = 60
+        x = 10
+        y = 10
+        
+        for name, lbl in self.labels.items():
+            default_x = x
+            default_y = y
+            
+            x += spacing
+            
+            pos = self.layout_manager.get_position("maidens", name)
+            if pos:
+                lbl.move(pos[0], pos[1])
+            else:
+                lbl.move(default_x, default_y)
 
         self.update_min_size()
 

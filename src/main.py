@@ -14,6 +14,10 @@ def main():
     app.setApplicationName("Lufia 2 Auto Tracker")
     app.setStyle("Fusion")
     
+    # Tooltip delay (Qt doesn't expose a simple global "TooltipDelay" setting, 
+    # but we can try to improve responsiveness via event filters if needed.
+    # We will implement hover events in InteractiveDot for near-instant tooltips)
+    
     # Global Dark Theme to fix light-mode system contrast issues
     app.setStyleSheet("""
         QMainWindow, QWidget {

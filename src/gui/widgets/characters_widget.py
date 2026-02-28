@@ -12,7 +12,10 @@ class DraggableLabel(QLabel):
         self.setScaledContents(True)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+        if self.parent() and getattr(self.parent(), 'edit_mode', False):
+            # Pass the event up to CharacterCell to handle the Drag
+            event.ignore()
+        elif event.button() == Qt.MouseButton.LeftButton:
             self.clicked_signal.emit()
 
 class CharacterCell(QWidget):
@@ -187,24 +190,26 @@ class CharactersCanvas(QWidget):
             if name not in self.cells: continue
             cell = self.cells[name]
             
-            # Check Manual Override
-            pos = self.layout_manager.get_position("characters", name)
-            if pos:
-                cell.move(pos[0], pos[1])
-                continue
-                
             # Resize cell to fit content (Dynamic Height)
-            if cell.layout():
-                cell.layout().activate()
+            if hasattr(cell, 'layout') and cell.layout:
+                cell.layout.activate()
             cell.adjustSize() 
             w = cell.width()
             h = cell.height()
             
-            # Place in Grid
-            cell.move(current_x, current_y)
-            current_row_cells.append(cell)
-            row_max_h = max(row_max_h, h)
+            # Default Layout Position
+            default_x = current_x
+            default_y = current_y
             
+            # Check Manual Override
+            pos = self.layout_manager.get_position("characters", name)
+            if pos:
+                cell.move(pos[0], pos[1])
+            else:
+                cell.move(default_x, default_y)
+                
+            # Calculate next default position
+            row_max_h = max(row_max_h, h)
             current_x += col_width
             col_count += 1
             
@@ -297,11 +302,12 @@ class CharactersCanvas(QWidget):
                 # Recruited but inactive -> Dimmed 
                 # User said: "As long as there is a location assigned to them it signals they have been found."
                 # User said: "recruited but inactive characters are still fully lit. at this point just dim them."
+                # User feedback: "active state of an acquired character is too dim" -> Brighten from 0.5 to 0.85.
                 
                 dim_pix = QPixmap(pix.size())
                 dim_pix.fill(Qt.GlobalColor.transparent)
                 painter = QPainter(dim_pix)
-                painter.setOpacity(0.5) # Dimmed but visible color
+                painter.setOpacity(0.85) # Brighter
                 painter.drawPixmap(0, 0, pix)
                 painter.end()
                 
@@ -313,7 +319,7 @@ class CharactersCanvas(QWidget):
                 gray_pix = QPixmap(pix.size())
                 gray_pix.fill(Qt.GlobalColor.transparent)
                 painter = QPainter(gray_pix)
-                painter.setOpacity(0.2) 
+                painter.setOpacity(0.4) # Increased from 0.2
                 painter.drawPixmap(0, 0, pix)
                 painter.end()
                 cell.set_pixmap(gray_pix)

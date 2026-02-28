@@ -65,6 +65,15 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.player_size_requested.connect(self.map_widget.set_player_scale)
         self.menu_ribbon.edit_layout_toggled.connect(self._set_edit_mode)
         
+        # Custom Styling overrides
+        self.menu_ribbon.city_color_requested.connect(self._pick_city_color)
+        self.menu_ribbon.city_shape_requested.connect(self._on_city_shape_requested)
+        self.menu_ribbon.dungeon_shape_requested.connect(self._on_dungeon_shape_requested)
+        
+        # Reset / Save Layout
+        self.menu_ribbon.reset_pictures_requested.connect(self._on_reset_pictures_requested)
+        self.menu_ribbon.save_layout_default_requested.connect(self._on_save_layout_default_requested)
+        
         # Sync Requests
         self.menu_ribbon.sync_requested.connect(self._handle_sync_request)
         
@@ -142,6 +151,38 @@ class MainWindow(QMainWindow):
         if not self.state_manager.helper.running:
              self.state_manager.toggle_auto_tracking(True)
              self._is_syncing = True
+
+    def _pick_city_color(self):
+        from PyQt6.QtWidgets import QColorDialog
+        from PyQt6.QtGui import QColor
+        color = QColorDialog.getColor(initial=QColor("orange"), parent=self, title="Pick City Color")
+        if color.isValid():
+            hex_color = color.name()
+            self._city_color = hex_color
+            self.map_widget.set_city_color_override(hex_color)
+
+    def _on_city_shape_requested(self, shape):
+        self._city_shape = shape
+        self.map_widget.set_city_shape(shape)
+
+    def _on_dungeon_shape_requested(self, shape):
+        self._dungeon_shape = shape
+        self.map_widget.set_dungeon_shape(shape)
+
+    def _on_save_layout_default_requested(self):
+        """Saves current drag-and-drop widget layout as the user's default fallback configuration."""
+        self.layout_manager.save_custom_as_default()
+
+    def _on_reset_pictures_requested(self):
+        self.layout_manager.reset_layout()
+        if hasattr(self, 'characters_widget'):
+            self.characters_widget.canvas._reflow_grid()
+        if hasattr(self, 'maiden_widget'):
+            self.maiden_widget.update_positions()
+        if hasattr(self, 'tools_widget'):
+            self.tools_widget.grid.update_positions()
+        if hasattr(self, 'scenario_widget'):
+            self.scenario_widget.grid.update_positions()
 
     def _on_player_shape_requested(self, shape):
         if shape == "sprite":
@@ -297,6 +338,7 @@ class MainWindow(QMainWindow):
         # UI Signals -> State Manager Overrides
         self.map_widget.location_clicked.connect(self._handle_location_click)
         self.map_widget.location_right_clicked.connect(self._handle_location_right_click)
+        self.items_widget.add_requested.connect(self._open_item_search)
 
         # Character Signals
         self.state_manager.character_assigned.connect(self._on_character_assigned)
@@ -395,7 +437,7 @@ class MainWindow(QMainWindow):
         
         cities = self.data_loader.get_cities()
         if name in cities:
-            self._open_item_search(name)
+            return # Context menu removed for cities
         else:
             self._open_character_assignment(name)
 
@@ -459,18 +501,31 @@ class MainWindow(QMainWindow):
         self.map_widget.add_character_sprite(location, name, full_path)
 
 
-    def _open_item_search(self, location_name):
+    def _open_item_search(self, location_name=None):
+        if not location_name:
+            cities = getattr(self, '_cities_cache', None)
+            if not cities:
+                 cities = self.data_loader.get_cities()
+                 self._cities_cache = cities
+            
+            # Sort for deterministic first element or use first
+            sorted_cities = sorted(list(cities))
+            location_name = sorted_cities[0] if sorted_cities else ""
+
         # Parent=None to allow independent window (Taskbar entry, Alt-Tab, free movement)
         dlg = ItemSearchDialog(location_name, self.data_loader, parent=None)
         dlg.item_added.connect(self._on_shop_item_added)
         
-        # Position at cursor for "Context Menu" feel, but ensure it fits on screen?
-        # Default center of parent is also fine. 
-        # User said "appears in a weird spot" for the context menu.
-        # Let's just let Qt handle centering or position near cursor.
-        # dlg.move(self.map_widget.cursor().pos()) 
+        def highlight_loc(name):
+             self.map_widget.highlight_location(name)
+             
+        dlg.location_changed.connect(highlight_loc)
+        highlight_loc(location_name)
         
         dlg.exec() # Blocking
+        self.map_widget.clear_highlight()
+        
+        self.map_widget.clear_highlight()
         
         # Cleanup
         dlg.deleteLater()

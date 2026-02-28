@@ -74,20 +74,10 @@ class DraggableItemIcon(ItemIcon):
     def mouseMoveEvent(self, event):
         if self.edit_mode and self._drag_start_pos:
             # Calculate movement
-            # We need the vector from start_pos (relative to widget) to current pos (relative to widget)
-            # But if we move the widget, the relative pos stays mostly same?
-            # Better to use global coordinates or parent coordinates.
-            
             curr_pos = self.mapToParent(event.pos())
             start_pos_in_parent = self.mapToParent(self._drag_start_pos)
-            
             diff = curr_pos - start_pos_in_parent
             self.move(self.pos() + diff)
-            
-            # Emit change?
-            # self.position_changed.emit(self.name, self.x(), self.y())
-            # Better emit on release to save.
-            
         else:
             super().mouseMoveEvent(event)
 
@@ -116,7 +106,6 @@ class ItemGrid(QWidget):
         self.show_labels = show_labels
         
         # No Layout! Absolute positioning.
-        
         self.icons = {} # name -> ItemIcon
         
         # Initial Grid Params
@@ -133,23 +122,7 @@ class ItemGrid(QWidget):
             rel_path = data.get("image_path", "")
             full_path = os.path.join(images_dir, rel_path)
             
-            # Check for saved position
-            pos = self.layout_manager.get_position(self.widget_id, name)
-            
-            if pos:
-                final_x, final_y = pos
-            else:
-                # Calculate Grid default
-                final_x = x + (col * spacing_x)
-                final_y = y
-                
-                col += 1
-                if col >= cols:
-                    col = 0
-                    y += spacing_y
-
             icon = DraggableItemIcon(name, full_path, size=icon_size, show_label=show_labels, parent=self)
-            icon.move(final_x, final_y)
             icon.show() # Explicitly show since not in layout
             
             icon.toggled.connect(self._on_item_toggled)
@@ -157,7 +130,31 @@ class ItemGrid(QWidget):
             
             self.icons[name] = icon
 
-        # Set minimum size to encompass all items
+        self.update_positions()
+
+    def update_positions(self):
+        x = 5
+        y = 5
+        col = 0
+        cols = 6
+        spacing_x = self.icon_size + 10
+        spacing_y = self.icon_size + 20 if self.show_labels else self.icon_size + 5
+        
+        for name, icon in self.icons.items():
+            default_x = x + (col * spacing_x)
+            default_y = y
+            
+            col += 1
+            if col >= cols:
+                col = 0
+                y += spacing_y
+                
+            pos = self.layout_manager.get_position(self.widget_id, name)
+            if pos:
+                icon.move(pos[0], pos[1])
+            else:
+                icon.move(default_x, default_y)
+                
         self.update_min_size()
 
     def set_edit_mode(self, enabled):

@@ -4,6 +4,14 @@ A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
 
+## ✨ New in v1.4.3
+
+*   **Custom Map Shapes**: You can now define individual map dot shapes for **Cities** and **Dungeons**.
+*   **City Color Overrides**: Specify custom colors for unexplored cities, bypassing the default orange.
+*   **Layout Recovery**: Added **"Reset Picture Positions"** to quickly restore icon locations to your personalized default.
+*   **Instant Tooltips**: Map dot mouse-over delays have been virtually eliminated for lightning-fast location hunting.
+*   **Adjustable Logic Rules**: Narvick access rules properly require "Engine" only (formerly allowed "Jade").
+
 ## ✨ New in v1.4.2
 
 *   **Active Sprite Marker**: The map player marker can now automatically display the sprite of your **Active Party Leader** (Slot 1).

@@ -22,18 +22,18 @@ COLORS = {
     'accessible': 'lightgreen',
     'fully_accessible': 'lightgreen',
     'not_accessible': 'red',
-    'city': 'yellow',
+    'city': 'orange',
     'cleared': 'grey'
 }
 
 LOCATION_STATES = {
     "not_accessible": "red",
-    "partially_accessible": "orange",
+    "partially_accessible": "yellow",
     "fully_accessible": "lightgreen",
     "cleared": "grey"
 }
 
-STATE_ORDER = ["not_accessible", "fully_accessible", "cleared"]
+STATE_ORDER = ["not_accessible", "partially_accessible", "fully_accessible", "cleared"]
 
 ALWAYS_ACCESSIBLE_LOCATIONS = {
     'Foomy Woods',

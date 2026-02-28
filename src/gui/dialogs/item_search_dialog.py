@@ -11,6 +11,7 @@ class ItemSearchDialog(QDialog):
     """
     item_added = pyqtSignal(str, str) # location, item_name
     duplicate_found = pyqtSignal(str, str) # location, item_name (for highlighting)
+    location_changed = pyqtSignal(str)
 
     def __init__(self, location, data_loader, parent=None):
         super().__init__(parent)
@@ -147,3 +148,4 @@ class ItemSearchDialog(QDialog):
     def _on_location_changed(self, new_location):
         self.location = new_location
         self.setWindowTitle(f"Search {self.location}")
+        self.location_changed.emit(self.location)
