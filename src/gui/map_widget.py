@@ -448,8 +448,8 @@ class MapWidget(QGraphicsView):
         
         # Position slightly offset from dot
         dot = self._dots[location]
-        dot_x = dot.rect().x()
-        dot_y = dot.rect().y()
+        dot_x = dot.x()
+        dot_y = dot.y()
         item.setPos(dot_x + 10, dot_y - 10)
         
         # Tooltip
@@ -519,8 +519,8 @@ class MapWidget(QGraphicsView):
         
         # Position slightly offset from dot
         dot = self._dots[location]
-        dot_x = dot.rect().x()
-        dot_y = dot.rect().y()
+        dot_x = dot.x()
+        dot_y = dot.y()
         item.setPos(dot_x + 10, dot_y - 10)
         
         # Tooltip
