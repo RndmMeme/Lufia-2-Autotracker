@@ -71,3 +71,25 @@ v1.4.3 Update - Emulator Compatibility
 *   **Fixes**:
     *   Fixed issue where "Cleared Dungeons" were not detected on NWA versions.
     *   Improved config file loading reliability.
+
+v1.4.4 Update - Bug Fixes & UI Refinements
+------------------------------------------
+*   **Core Systems**:
+    *   Fixed `state_manager.py` ghost memory leaks preventing Map Location texts and Sprites from fully flushing visually upon Game Reset.
+    *   Fixed Positional tracking freezes by caching spoiler logs.
+*   **Quality of Life**:
+    *   **Scalable Windows**: Converted Maidens and Characters panels to QGraphicsView, allowing contents to scale gracefully when their Dock borders are resized.
+    *   **Icon Sizing**: Added dedicated (+/-) scaling buttons for picture sizes across all icon-based widgets, including Characters, Maidens, Tools, and Keys.
+    *   **Recover Widgets**: Centralized accidentally closed docks into a custom 'Recover Widgets' menu options list.
+    *   **Location Text Toggle**: You can now toggle the text labels identifying where characters are found on/off inside the Custom menu.
+    *   **City Search Bar**: Formatted the Item Search city dropdown as an editable Auto-Complete typing field.
+    *   **Auto Tracking Menu**: Transferred the Auto Checkboxes out of the top ribbon into a dedicated `Tracker` -> `Auto` sub-menu.
+    *   **Cleaned Dropdowns**: Purged unreachable game locations (Gordovan, Agurio, Pico Woods) from Item Select tables.
+
+v1.4.5 Update - Planned Features
+------------------------------------------
+*   **Expanded Tracking**: Adding consumable items to the item search database.
+*   **Key Items**: Implementation of a Dragon Egg Counter.
+*   **Optimization**: Memory State Caching to reduce repetitive data transfer.
+*   **Dynamic UI**: Dynamic Sprite Window Support (flowing grids for characters).
+*   **Tooltips**: Item Requirement Tooltips for inaccessible map locations.

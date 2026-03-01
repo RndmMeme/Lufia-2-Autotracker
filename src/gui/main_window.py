@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMainWindow, QDockWidget, QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QMenu, QToolBar, QMessageBox, QFileDialog, QInputDialog
+from PyQt6.QtWidgets import QMainWindow, QDockWidget, QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QMenu, QToolBar, QMessageBox, QFileDialog, QInputDialog, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QSettings
 import logging
 
@@ -27,6 +27,8 @@ class MainWindow(QMainWindow):
         self.layout_manager = LayoutManager()
         
         self.setWindowTitle("Lufia 2 Auto Tracker v1.4")
+        from PyQt6.QtGui import QIcon
+        self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
         self.resize(1024, 768)
         
         # --- Menu Ribbon ---
@@ -41,6 +43,7 @@ class MainWindow(QMainWindow):
         self.state_manager.auto_update_received.connect(self._on_auto_update_received)
 
         self._active_search_dialogs = {}
+        self._is_closing = False
 
         # Initial Refresh to apply Logic
         # Initial Refresh to apply Logic
@@ -64,6 +67,9 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.player_shape_requested.connect(self._on_player_shape_requested)
         self.menu_ribbon.player_size_requested.connect(self.map_widget.set_player_scale)
         self.menu_ribbon.edit_layout_toggled.connect(self._set_edit_mode)
+        self.menu_ribbon.restore_windows_requested.connect(self._restore_closed_windows)
+        self.menu_ribbon.icon_adj_toggled.connect(self._toggle_icon_controls)
+        self.menu_ribbon.locations_text_toggled.connect(self._toggle_locations_text)
         
         # Custom Styling overrides
         self.menu_ribbon.city_color_requested.connect(self._pick_city_color)
@@ -86,6 +92,21 @@ class MainWindow(QMainWindow):
         # Iterate over all dock widgets
         for dock in self.findChildren(PersistentDockWidget):
             dock.title_bar.set_font_controls_visible(visible)
+
+    def _toggle_icon_controls(self, visible):
+        for dock in self.findChildren(PersistentDockWidget):
+            dock.title_bar.set_icon_controls_visible(visible)
+            
+    def _toggle_locations_text(self, visible):
+        if hasattr(self, 'characters_widget'):
+            self.characters_widget.canvas.set_locations_visible(visible)
+        if hasattr(self, 'maiden_widget'):
+            self.maiden_widget.set_locations_visible(visible)
+            
+    def _restore_closed_windows(self):
+        for dock in self.findChildren(PersistentDockWidget):
+            if dock.isHidden():
+                dock.show()
 
     def _pick_header_color(self):
         from PyQt6.QtWidgets import QColorDialog
@@ -145,12 +166,15 @@ class MainWindow(QMainWindow):
         """
         Sync: Fetch snapshot.
         If Auto is OFF: Start Helper momentarily.
+        If Auto is ON: Ping the helper to bypass diff-cache and send current payload immediately.
         """
         print(f"Sync Requested: {category}")
-        # Simplistic implementation: Enable auto tracking if not active
         if not self.state_manager.helper.running:
              self.state_manager.toggle_auto_tracking(True)
              self._is_syncing = True
+        else:
+             # Already running, just force a cache flush
+             self.state_manager.force_sync()
 
     def _pick_city_color(self):
         from PyQt6.QtWidgets import QColorDialog
@@ -217,7 +241,7 @@ class MainWindow(QMainWindow):
         self.setDockOptions(QMainWindow.DockOption.AllowNestedDocks | QMainWindow.DockOption.AnimatedDocks)
 
         # --- Items Dock (Left, Top) ---
-        self.items_dock = PersistentDockWidget("Items / Spells", self)
+        self.items_dock = PersistentDockWidget("Items / Spells", self, scale_contents=False)
         self.items_dock.setObjectName("items_dock")
         self.items_widget = ItemsWidget(self.state_manager)
         self.items_dock.setWidget(self.items_widget)
@@ -226,7 +250,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.items_dock)
 
         # --- Hints Dock (Left, Bottom) ---
-        self.hints_dock = PersistentDockWidget("Hints", self)
+        self.hints_dock = PersistentDockWidget("Hints", self, scale_contents=False)
         self.hints_dock.setObjectName("hints_dock")
         self.hint_widget = HintWidget()
         self.hints_dock.setWidget(self.hint_widget)
@@ -243,7 +267,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.chars_dock)
         
         # --- Tools Dock ---
-        self.tools_dock = PersistentDockWidget("Tools", self)
+        self.tools_dock = PersistentDockWidget("Tools", self, scale_contents=False)
         self.tools_dock.setObjectName("tools_dock")
         self.tools_widget = ToolsWidget(self.data_loader, self.layout_manager)
         self.tools_dock.setWidget(self.tools_widget)
@@ -259,7 +283,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.maidens_dock)
         
         # --- Keys Dock ---
-        self.scenario_dock = PersistentDockWidget("Keys", self)
+        self.scenario_dock = PersistentDockWidget("Keys", self, scale_contents=False)
         self.scenario_dock.setObjectName("scenario_dock")
         self.scenario_widget = ScenarioWidget(self.data_loader, self.layout_manager)
         self.scenario_dock.setWidget(self.scenario_widget)
@@ -267,7 +291,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.scenario_dock)
         
         # --- Map Dock (Far Right) ---
-        self.map_dock = PersistentDockWidget("World Map", self)
+        self.map_dock = PersistentDockWidget("World Map", self, scale_contents=False)
         self.map_dock.setObjectName("map_dock")
         self.map_widget = MapWidget(self.data_loader)
         self.map_dock.setWidget(self.map_widget)
@@ -373,6 +397,10 @@ class MainWindow(QMainWindow):
         # Clear Items/Spells
         if self.items_widget:
             self.items_widget.clear_all()
+            
+        # Reflow/Clear Characters (Bugfix: They weren't wiping cleanly on tracker reset)
+        if self.characters_widget:
+            self.characters_widget.refresh_state()
             
         # Refresh Logic (Just in case)
         self._refresh_all()
@@ -558,6 +586,11 @@ class MainWindow(QMainWindow):
             self.auto_tracker_thread.stop()
             self.auto_tracker_thread.wait()
             
+        # Force close all docks (Floating docks become top-level windows and might persist)
+        self._is_closing = True
+        for dock in self.findChildren(QDockWidget):
+            dock.close()
+            
         super().closeEvent(event)
 
     def _load_settings(self):
@@ -595,19 +628,54 @@ class MainWindow(QMainWindow):
             self.map_widget.set_player_scale(p_scale)
 
 
+class ScalableView(QGraphicsView):
+    def __init__(self, widget):
+        super().__init__()
+        self.scene = QGraphicsScene(self)
+        self.setScene(self.scene)
+        
+        # Transparent background so it blends nicely
+        self.setStyleSheet("background: transparent;")
+        
+        self.proxy = self.scene.addWidget(widget)
+        
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setFrameShape(QGraphicsView.Shape.NoFrame)
+        self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        
+        # Initial fit: force layout to resolve first
+        # Initial fit: force layout to resolve first
+        widget.resize(widget.sizeHint())
+        self.scene.setSceneRect(self.proxy.boundingRect())
+
+    def update_scale(self):
+        self.scene.setSceneRect(self.proxy.boundingRect())
+        self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        transform = self.transform()
+        if transform.m11() > 1.0 or transform.m22() > 1.0:
+            self.resetTransform()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_scale()
+
 class PersistentDockWidget(QDockWidget):
     """
     A DockWidget that doesn't delete itself on close, 
     but instead un-floats (docks back) or hides.
     User requested: 'on close reintegrate into main window'.
     """
-    def __init__(self, title, parent=None):
+    def __init__(self, title, parent=None, scale_contents=True):
         super().__init__(title, parent)
+        self.scale_contents = scale_contents
+        self._inner_widget = None
         # Set custom title bar for "Pin" functionality
         self.title_bar = DockTitleBar(title, self)
         self.setTitleBarWidget(self.title_bar)
         
         self.current_font_size = 11 # Default
+        self.current_icon_scale = 1.0 # Default
         
         # Border Style (Global for the dock)
         self.setStyleSheet(f"""
@@ -618,6 +686,19 @@ class PersistentDockWidget(QDockWidget):
             }}
             QWidget {{ font-size: {self.current_font_size}px; }}
         """)
+
+    def setWidget(self, widget):
+        if not widget:
+            super().setWidget(None)
+            self._inner_widget = None
+            return
+            
+        self._inner_widget = widget
+        if self.scale_contents:
+            view = ScalableView(widget)
+            super().setWidget(view)
+        else:
+            super().setWidget(widget)
 
     def adjust_font_size(self, delta):
         self.current_font_size += delta
@@ -633,11 +714,30 @@ class PersistentDockWidget(QDockWidget):
         """)
         
         # Try specific update method for known widgets
-        widget = self.widget()
+        widget = self._inner_widget
         if widget and hasattr(widget, "set_content_font_size"):
              widget.set_content_font_size(self.current_font_size)
+             # Rescale the graphics view bounding rect if layout changed slightly
+             if isinstance(self.widget(), ScalableView):
+                 self.widget().update_scale()
+
+    def adjust_icon_size(self, delta):
+        self.current_icon_scale += (delta * 0.1)
+        if self.current_icon_scale < 0.5: self.current_icon_scale = 0.5
+        if self.current_icon_scale > 3.0: self.current_icon_scale = 3.0
+        
+        widget = self._inner_widget
+        if widget and hasattr(widget, "set_icon_scale"):
+             widget.set_icon_scale(self.current_icon_scale)
+             if isinstance(self.widget(), ScalableView):
+                 self.widget().update_scale()
 
     def closeEvent(self, event):
+        # Allow global app termination to close floating docks
+        if self.parent() and getattr(self.parent(), '_is_closing', False):
+             super().closeEvent(event)
+             return
+             
         if self.isFloating():
             # If floating, 'restore' it to the dock area instead of hiding
             self.setFloating(False)

@@ -36,6 +36,9 @@ class ToolsWidget(QWidget):
     def set_content_font_size(self, size):
         self.grid.set_content_font_size(size)
 
+    def set_icon_scale(self, scale):
+        self.grid.set_icon_scale(scale)
+
     def set_edit_mode(self, enabled):
         self.grid.set_edit_mode(enabled)
 
@@ -78,6 +81,9 @@ class ScenarioWidget(QWidget):
 
     def set_content_font_size(self, size):
         self.grid.set_content_font_size(size)
+
+    def set_icon_scale(self, scale):
+        self.grid.set_icon_scale(scale)
 
     def set_edit_mode(self, enabled):
         self.grid.set_edit_mode(enabled)

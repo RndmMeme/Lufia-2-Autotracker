@@ -279,7 +279,7 @@ class StateManager(QObject):
             # we set obtained=False.
             self.set_character_obtained(char, False)
             self.character_unassigned.emit(location, char)
-            logging.info(f"StateManager: Removed {char} from {location} and set to Not Obtained.")
+            logging.debug(f"StateManager: Removed {char} from {location} and set to Not Obtained.")
 
     def register_shop_item(self, location, item_name):
         # Check duplicate
@@ -320,44 +320,56 @@ class StateManager(QObject):
         Slot for auto_update_received signal. 
         Process data received from external tracker.
         """
-        logging.info(f"Auto-Update Payload Keys: {list(payload.keys())}")
+        logging.debug(f"Auto-Update Payload Keys: {list(payload.keys())}")
+        
+        # 0. Empty Payload Check (Emulator Unhook / Reset)
+        # GameState in C# instantiates empty lists.
+        if not payload.get("inventory") and not payload.get("characters") and payload.get("player_x", 0) == 0 and payload.get("player_y", 0) == 0:
+             logging.debug("StateManager: Empty payload received. Triggering state reset.")
+             self.reset_state()
+             return
         
         # 0. Store Capsule Mapping (if present)
         if "capsule_sprite_values" in payload:
             self.update_capsule_sprites(payload["capsule_sprite_values"])
         
         # 1. Inventory & Scenario (Keys)
-        if self._is_tracking_enabled('tools'):
+        if self._is_tracking_enabled('tools') and "inventory" in payload and payload["inventory"] is not None:
             new_inventory = {}
             
             # Tools
-            if "inventory" in payload:
-                for item in payload['inventory']:
-                     new_inventory[item] = True
+            for item in payload.get('inventory') or []:
+                 new_inventory[item] = True
             
             # Keys (Scenario Items)
-            if "scenario" in payload:
-                for item in payload['scenario']:
+            if payload.get("scenario"):
+                for item in payload.get('scenario') or []:
                     new_inventory[item] = True
             
             # Update Inventory (Authoritative)
             self._inventory = new_inventory
             
-            # Maidens & Inactive Characters (Inferred from Spoiler Log + Cleared Locations)
-            if payload.get("spoiler_log"):
-                 self.process_spoiler_log(
-                     payload['spoiler_log'], 
-                     payload.get('cleared_locations', []),
-                     payload.get('capsules', []) # Pass obtained capsules for map logic
-                 )
-            
             # Emit Inventory Change
             self.inventory_changed.emit(self.get_inventory())
+            
+        # 1.b. Maidens & Characters (Spoiler Log Check)
+        if self._is_tracking_enabled('tools') and payload.get("spoiler_log"):
+             new_args = (
+                  payload['spoiler_log'],
+                  payload.get('cleared_locations') or [],
+                  payload.get('capsules') or []
+             )
+             
+             # Only re-process if the inputs have actually changed OR if sprites just changed
+             # update_capsule_sprites might trigger it, but if this is a fresh sync, we need explicit run here
+             if not hasattr(self, '_last_spoiler_args') or self._last_spoiler_args != new_args:
+                 logging.debug("StateManager: Re-processing spoiler log due to payload change.")
+                 self.process_spoiler_log(*new_args)
 
         # 2. Characters & Capsules
-        if self._is_tracking_enabled('chars'):
-            active_list = payload.get('characters', []) # Humans (Party)
-            capsule_list = payload.get('capsules', []) # Capsules (Obtained)
+        if self._is_tracking_enabled('chars') and "characters" in payload and payload["characters"] is not None:
+            active_list = payload.get('characters') or [] # Humans (Party)
+            capsule_list = payload.get('capsules') or [] # Capsules (Obtained)
             
             # v1.3 Logic Decoupled:
             self._active_party_list = active_list # Store ordered list
@@ -372,12 +384,28 @@ class StateManager(QObject):
             for name in capsule_list:
                 self.set_character_obtained(name, True)
 
+            # Un-obtain characters that are not in the current payload
+            # This fixes the issue where characters stick around after a reset or loading an earlier save.
+            assigned_chars = set(self._character_locations.values())
+            for name in list(self._characters.keys()):
+                 # A character should remain "obtained" iff:
+                 # 1. They are in the active party (humans)
+                 # 2. They are in the obtained capsules list
+                 # 3. They are pinned to a location manually (in _character_locations)
+                 # 4. They are manually forced obtained via UI (_manual_character_overrides)
+                 is_forced = self._manual_character_overrides.get(name, False)
+                 
+                 if name not in self._active_party and name not in self._obtained_capsules and name not in assigned_chars and not is_forced:
+                      if self._characters[name]: # if currently obtained
+                           self.set_character_obtained(name, False)
+                           logging.debug(f"StateManager: Character {name} not found in payload and not pinned. Set obtained=False.")
+
             # Emit changes (force update on widget to refresh Dim/Lit states)
             for name, obtained in self._characters.items():
                 self.character_changed.emit(name, obtained)
 
         # 3. Locations (Cleared)
-        if self._is_tracking_enabled('tools') and 'cleared_locations' in payload:
+        if self._is_tracking_enabled('tools') and "cleared_locations" in payload and payload["cleared_locations"] is not None:
              payload_cleared = set(payload['cleared_locations'])
              
              # Apply new cleared
@@ -436,16 +464,48 @@ class StateManager(QObject):
     def reset_state(self):
         """Reset all tracker state to defaults (but keep options)."""
         logging.info("Resetting tracker state to defaults.")
-        self._inventory = {}
-        self._characters = {}
-        self._active_party = set()
-        self._obtained_capsules = set()
-        
-        self.reset_overrides()
         
         # Unassign all map sprites explicitly
         for loc, char in list(self._character_locations.items()):
             self.character_unassigned.emit(loc, char)
+            
+        old_locations = list(self._locations.keys())
+            
+        self._inventory = {}
+        self._characters = {}
+        self._active_party = set()
+        self._obtained_capsules = set()
+        self._character_locations = {}
+        self._locations = {}
+        
+        self.reset_overrides()
+        
+        # Broadcast cleared locations as unknown
+        for loc in old_locations:
+             self.location_changed.emit(loc, "unknown")
+        
+        # Characters UI wipe
+        for name in ["Maxim", "Selan", "Guy", "Artea", "Tia", "Dekar", "Lexis", "Jelze", "Flash", "Gusto", "Zeppy", "Darbi", "Sully", "Blaze"]:
+            self.character_changed.emit(name, False)
+        
+        # Clear Data Caches so Sync doesn't ignore fresh payloads
+        if hasattr(self, '_last_spoiler_args'):
+            self._last_spoiler_args = None
+        if hasattr(self, '_capsule_sprite_mapping'):
+            self._capsule_sprite_mapping = None
+        if hasattr(self, 'capsule_sprites'):
+            self.capsule_sprites = None
+            
+        self.reset_occurred.emit()
+            
+    def force_sync(self):
+        """Used by the Sync button to flush caches and demand a clean payload."""
+        if hasattr(self, '_last_spoiler_args'):
+            self._last_spoiler_args = None
+        if hasattr(self, '_capsule_sprite_mapping'):
+            self._capsule_sprite_mapping = None
+        if self.helper and self.helper.running:
+            self.helper.request_sync()
         self._character_locations = {}
         
         # Locations reset
@@ -488,6 +548,12 @@ class StateManager(QObject):
         self._last_spoiler_args = (spoiler_log, cleared_lines, obtained_capsules)
         
         cleared_set = set(cleared_lines)
+        
+        # Merge manual overrides so spoiler log correctly places sprites on manually-cleared dots
+        for override_loc, override_state in self._manual_location_overrides.items():
+            if override_state == "cleared":
+                cleared_set.add(override_loc)
+        
         obtained_capsules_set = set(obtained_capsules)
         
         maiden_map = {"Clare": "Claire", "Lisa": "Lisa", "Marie": "Marie"}
@@ -646,13 +712,20 @@ class StateManager(QObject):
 
     def update_capsule_sprites(self, sprites: list):
         """Called by Logic/TrackerClient when C# sends new sprite data."""
+        if sprites is None:
+            return
+            
+        # Only process if the sprites have actually changed
+        if hasattr(self, '_capsule_sprite_mapping') and self._capsule_sprite_mapping == sprites:
+            return
+
         self.capsule_sprites = sprites
         self._capsule_sprite_mapping = sprites 
         
-        logging.info(f"StateManager: Received {len(sprites)} capsule sprites.")
+        logging.info(f"StateManager: Received {len(sprites)} capsule sprites. Re-processing spoiler log.")
         
         # Trigger re-mapping if we have potential spoiler data waiting
         if hasattr(self, '_last_spoiler_args') and self._last_spoiler_args:
-            logging.info("StateManager: Re-processing spoiler log with new capsule data.")
-            self.process_spoiler_log(*self._last_spoiler_args)
+            # Clear last args so process_auto_update will definitely fire it if it's currently running
+            self._last_spoiler_args = None
 

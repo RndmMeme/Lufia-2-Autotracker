@@ -33,6 +33,10 @@ class MenuRibbon(QWidget):
     # Edit Layout Signal
     edit_layout_toggled = pyqtSignal(bool)
     
+    restore_windows_requested = pyqtSignal()
+    icon_adj_toggled = pyqtSignal(bool)
+    locations_text_toggled = pyqtSignal(bool)
+    
     # Checkbox signals (state changes)
     auto_options_changed = pyqtSignal(dict) # {chars: bool, tools: bool...}
 
@@ -98,9 +102,26 @@ class MenuRibbon(QWidget):
         
         # Auto Action
         self.auto_active = False
-        self.auto_action = QAction("Auto", self)
-        self.auto_action.triggered.connect(self._toggle_auto)
-        tracker_menu.addAction(self.auto_action)
+        self.auto_menu = QMenu("Auto", self)
+        
+        self.auto_tracking_action = QAction("Enable Auto Tracking", self)
+        self.auto_tracking_action.setCheckable(True)
+        self.auto_tracking_action.toggled.connect(self._toggle_auto)
+        self.auto_menu.addAction(self.auto_tracking_action)
+        self.auto_menu.addSeparator()
+        
+        self.checkboxes = {}
+        for key in ["All", "Chars", "Tools", "Keys", "Maidens", "Pos"]:
+            action = QAction(key, self)
+            action.setCheckable(True)
+            action.setChecked(False)
+            action.toggled.connect(self._on_checkbox_change)
+            self.checkboxes[key] = action
+            self.auto_menu.addAction(action)
+            if key == "All":
+                action.toggled.connect(self._on_all_toggled)
+
+        tracker_menu.addMenu(self.auto_menu)
 
         # --- Custom (Middle) ---
         custom_menu = self.menu_bar.addMenu("Custom")
@@ -115,6 +136,17 @@ class MenuRibbon(QWidget):
         self.edit_layout_action.setCheckable(True)
         self.edit_layout_action.toggled.connect(self.edit_layout_toggled.emit)
         custom_menu.addAction(self.edit_layout_action)
+        
+        self.icon_adj_action = QAction("Show Icon Size Adj", self)
+        self.icon_adj_action.setCheckable(True)
+        self.icon_adj_action.toggled.connect(self.icon_adj_toggled.emit)
+        custom_menu.addAction(self.icon_adj_action)
+        
+        self.loc_text_action = QAction("Show Locations Text", self)
+        self.loc_text_action.setCheckable(True)
+        self.loc_text_action.setChecked(True)
+        self.loc_text_action.toggled.connect(self.locations_text_toggled.emit)
+        custom_menu.addAction(self.loc_text_action)
         
         custom_menu.addAction("Header Color", self.header_color_requested.emit)
         
@@ -160,10 +192,11 @@ class MenuRibbon(QWidget):
 
 
         
-        # Reset / Save Picture Positions
+        # Reset / Save Picture Positions / Windows
         save_layout_action = custom_menu.addAction("Save Current Layout as Default", self.save_layout_default_requested.emit)
         save_layout_action.setVisible(False)
         custom_menu.addAction("Reset Picture Positions", self.reset_pictures_requested.emit)
+        custom_menu.addAction("Restore Closed Windows", self.restore_windows_requested.emit)
 
         custom_menu.addSeparator()
         
@@ -198,38 +231,9 @@ class MenuRibbon(QWidget):
         self.cb_layout.setSpacing(10)
         self.checkbox_frame.setLayout(self.cb_layout)
         
-        self.lbl_auto = QLabel("Auto Tracking:")
-        self.lbl_auto.setStyleSheet("color: #aaa; font-size: 11px;")
+        self.lbl_auto = QLabel("Auto Tracking (Active)")
+        self.lbl_auto.setStyleSheet("color: lightgreen; font-weight: bold;")
         self.cb_layout.addWidget(self.lbl_auto)
-        
-        self.checkboxes = {}
-        for key in ["All", "Chars", "Tools", "Keys", "Maidens", "Pos"]:
-            cb = QCheckBox(key)
-            # Enforce strict checkbox styling
-            cb.setStyleSheet("""
-                QCheckBox { color: #ddd; }
-                QCheckBox::indicator {
-                    width: 13px;
-                    height: 13px;
-                    border: 1px solid #888;
-                    background: #333;
-                }
-                QCheckBox::indicator:checked {
-                    background: #4CAF50;
-                    border: 1px solid #4CAF50;
-                    image: url(none); /* Remove default check image if we want plain color, or keep default */
-                }
-                QCheckBox::indicator:hover {
-                    border: 1px solid #aaa;
-                }
-            """)
-            cb.setChecked(False) 
-            cb.stateChanged.connect(self._on_checkbox_change)
-            self.checkboxes[key] = cb
-            self.cb_layout.addWidget(cb)
-            
-            if key == "All":
-                 cb.toggled.connect(self._on_all_toggled)
 
         self.checkbox_frame.hide() 
         layout.addWidget(self.checkbox_frame)
@@ -246,19 +250,22 @@ class MenuRibbon(QWidget):
         dlg = HelpDialog(self)
         dlg.exec()
 
-    def _toggle_auto(self):
-        self.auto_active = not self.auto_active
+    def _toggle_auto(self, checked=None):
+        if checked is not None:
+            self.auto_active = checked
+        else:
+            self.auto_active = not self.auto_active
+            self.auto_tracking_action.setChecked(self.auto_active)
+            
         self.auto_toggled.emit(self.auto_active)
         
         if self.auto_active:
-            self.auto_action.setText("Auto (Active)")
+            self.auto_menu.setTitle("Auto (Active)")
             self.checkbox_frame.show()
-            self.lbl_auto.setStyleSheet("color: lightgreen; font-weight: bold;")
-            # Default "All" to checked if first time?
             if not self.checkboxes["All"].isChecked():
                  self.checkboxes["All"].setChecked(True)
         else:
-            self.auto_action.setText("Auto")
+            self.auto_menu.setTitle("Auto")
             self.checkbox_frame.hide()
 
     def _on_all_toggled(self, checked):

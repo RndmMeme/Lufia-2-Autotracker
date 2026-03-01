@@ -13,6 +13,7 @@ class ItemIcon(QWidget):
     def __init__(self, name, image_path, size=48, show_label=False, parent=None):
         super().__init__(parent)
         self.name = name
+        self.base_size = size
         self._is_active = False
         
         # Layout
@@ -109,3 +110,9 @@ class ItemIcon(QWidget):
     def set_font_size(self, size):
         if hasattr(self, 'text_lbl'):
             self.text_lbl.setStyleSheet(f"font-size: {size}px; color: #ddd;")
+
+    def set_icon_scale(self, scale):
+        size = int(self.base_size * scale)
+        self.icon_lbl.setFixedSize(size, size)
+        self.setMinimumSize(size, size)
+        self._update_display()

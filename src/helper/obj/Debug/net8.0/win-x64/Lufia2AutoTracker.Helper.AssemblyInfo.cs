@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Lufia2AutoTracker.Helper")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+30ba28423891201169dd74b4939fcc50723e917b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d27f0035587de3ab77369d181b9a09ca90079b92")]
 [assembly: System.Reflection.AssemblyProductAttribute("Lufia2AutoTracker.Helper")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Lufia2AutoTracker.Helper")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

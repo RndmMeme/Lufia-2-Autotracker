@@ -17,9 +17,6 @@ class HintWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
         
-        self.label = QLabel("Looking for Hints...")
-        layout.addWidget(self.label)
-        
         self.text_area = QTextEdit()
         self.text_area.setReadOnly(False)
         self.text_area.setPlaceholderText("Type your hints/notes here...")

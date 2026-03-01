@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton, QLabel, QListWidget, QStackedWidget, QWidget
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 
 class BaseInfoDialog(QDialog):
     def __init__(self, title, content, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
+        self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
         self.resize(400, 500)
         
         layout = QVBoxLayout()
@@ -25,7 +26,7 @@ class BaseInfoDialog(QDialog):
 class AboutDialog(BaseInfoDialog):
     def __init__(self, parent=None):
         content = """
-        <h3>Lufia 2 Auto Tracker v1.4.3</h3>
+        <h3>Lufia 2 Auto Tracker v1.4.4</h3>
         <p><b>My Discord:</b><br>Rndmmeme#5100</p>
         
         <p><b>Lufia 2 Community on Discord:</b><br>Ancient Cave</p>
@@ -58,6 +59,7 @@ class HelpDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Help & Documentation")
+        self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
         self.resize(700, 500) # Wider for pages
         
         # Main Layout
@@ -93,15 +95,26 @@ class HelpDialog(QDialog):
         
         # 1. Introduction
         self.add_page("Introduction", """
-            <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v1.4.3!</h3>
+            <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v1.4.4!</h3>
             <p>This tracker helps you keep track of your randomizer run with advanced features like auto-tracking, map visualization, and inventory management.</p>
-            <p><b>New in v1.4.3:</b></p>
+            <p><b>New in v1.4.4:</b></p>
             <ul>
-                <li><b>Custom map attributes:</b> Shape profiles for Cities and Dungeons.</li>
-                <li><b>Custom Color:</b> Custom color overriding for Cities.</li>
-                <li><b>Item / Spell Search:</b> Accessible via 'Add' button in Items/Spells widget. (No longer on Map right click). Active search city displays a cyan highlight on Map.</li>
-                <li><b>Layout Recovery:</b> Custom menu <i>Reset Picture Positions</i> to revert icons to their default arrangement.</li>
-                <li><b>Instant Map Tooltips:</b> Mouse hover delay on map dots eliminated.</li>
+                <li><b>Scalable Windows:</b> Maidens and Characters panels scale gracefully when their Dock borders are resized.</li>
+                <li><b>Icon Sizing Controls:</b> Dedicated (+/-) scaling buttons for all icon-based widgets, including Characters, Maidens, Tools, and Keys.</li>
+                <li><b>Recover Widgets:</b> Re-open accidentally closed docks via the Custom menu.</li>
+                <li><b>Location Text Toggle:</b> Toggle character discovery text labels on/off.</li>
+                <li><b>City Search Bar:</b> Formatted the Item Search dropdown as an editable Auto-Complete typing field.</li>
+                <li><b>Quality of Life:</b> Transferred Auto Tracking checkboxes into a clean Tracker Dropdown. Purged unreachable map designations.</li>
+                <li><b>Robust Sync Flushing:</b> Fixed ghost character location strings and map override persistence bugs.</li>
+            </ul>
+
+            <p><b>Planned for v1.4.5:</b></p>
+            <ul>
+                <li>Adding consumable items to item search</li>
+                <li>Dragon Egg Counter</li>
+                <li>Memory State Caching (reduce repetitive data transfer)</li>
+                <li>Dynamic Sprite Window Support</li>
+                <li>Item Requirement Tooltips for map locations</li>
             </ul>
         """)
         
@@ -113,6 +126,8 @@ class HelpDialog(QDialog):
                 <li><b>Rearrange:</b> Drag 'n drop dock titles to rearrange panels.</li>
                 <li><b>Float:</b> Drag a panel out to make it a separate window.</li>
                 <li><b>Font Size:</b> Enable 'Show Font Adj' in Options. Use (+/-) on dock headers to scale text size.</li>
+                <li><b>Icon Sizing:</b> Enable 'Show Icon Sizing' in Options. Use (+/-) on dock headers to scale portrait/sprite sizes across all icon-based docks.</li>
+                <li><b>Recover Docks:</b> If a dock is accidentally closed, restore it via <b>Custom > Recover Widgets</b>.</li>
                 <li><b>Header Color:</b> Use 'Header Color' in Options to customize dock appearance.</li>
             </ul>
             <h4>Free Placement (Edit Layout)</h4>
@@ -133,6 +148,8 @@ class HelpDialog(QDialog):
                 <li><b>Sync Menu:</b> Perform a one-time snapshot of specific data (Inventory, Characters, etc.) without keeping the connection open.</li>
                 <li><b>Status:</b> The 'Auto' text turns Green when active.</li>
             </ul>
+            <h4>Important: Loading Saves</h4>
+            <p><b>Please note:</b> When loading a new save state or switching saves, a manual <b>'Reset'</b> via the Options menu is currently required to fully wipe the character board before the next sync applies. After resetting the tracker, please press the manual <b>Sync</b> button, or deactivate and reactivate active tracking to fetch the latest location data.</p>
             <h4>Granular Filters</h4>
             <p>In the 'Tracker' menu, you can toggle which data types to update (e.g. disable 'Pos' if you want manual map control).</p>
         """)

@@ -223,4 +223,15 @@ class HelperInterface:
         finally:
             self.stop()
 
+    def request_sync(self):
+        """Sends a SYNC command to the connected C# helper to force a full state refresh."""
+        if self.client_socket:
+            try:
+                self.client_socket.sendall(b"SYNC\n")
+                logging.info("Sent SYNC request to Tracker Helper.")
+            except Exception as e:
+                logging.error(f"Failed to send SYNC request: {e}")
+        else:
+            logging.warning("Cannot send SYNC request: Not connected to Tracker Helper.")
+
 

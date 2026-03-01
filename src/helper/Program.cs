@@ -17,11 +17,16 @@ namespace Lufia2AutoTracker.Helper
             Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4");
             
             var client = new TrackerClient();
+            client.StartListening(); // Start listening for incoming commands like "SYNC"
+
             var scanner = new ProcessScanner();
             DataReaders reader = null;
             GameState lastState = null;
             Process process = null;
             MemoryProfile currentProfile = null;
+            
+            bool forceSync = false;
+            client.SyncRequested += () => { forceSync = true; };
             
             // Spoiler Log Cache (only read once per session usually)
             List<Dictionary<string, string>> cachedSpoilerLog = null;
@@ -239,32 +244,90 @@ namespace Lufia2AutoTracker.Helper
                         }
                         state.SpoilerLog = cachedSpoilerLog;
 
-                        // Send Diff
-                        string jsonCurrent = System.Text.Json.JsonSerializer.Serialize(state);
-                        string jsonLast = lastState != null ? System.Text.Json.JsonSerializer.Serialize(lastState) : "";
-                        
-                        // Ignore Spoiler Log in diff check to avoid huge string compare overhead if it's static?
-                        // For now simple compare is fine.
+                        // Separate Position from Core Data for Diffing
+                        var currentPosStr = $"{state.PlayerX},{state.PlayerY},{state.TransportMode}";
+                        var lastPosStr = lastState != null ? $"{lastState.PlayerX},{lastState.PlayerY},{lastState.TransportMode}" : "";
 
-                        if (jsonCurrent != jsonLast)
+                        // Create a clone of state without position for core diffing
+                        var coreStateCurrent = new {
+                            inventory = state.Inventory,
+                            characters = state.Characters,
+                            capsules = state.Capsules,
+                            capsule_sprite_values = state.CapsuleSpriteValues,
+                            cleared_locations = state.ClearedLocations,
+                            scenario = state.ScenarioItems,
+                            maidens = state.Maidens,
+                            // Spoiler log ignored in diff to save CPU
+                        };
+                        var coreStateLast = lastState != null ? new {
+                            inventory = lastState.Inventory,
+                            characters = lastState.Characters,
+                            capsules = lastState.Capsules,
+                            capsule_sprite_values = lastState.CapsuleSpriteValues,
+                            cleared_locations = lastState.ClearedLocations,
+                            scenario = lastState.ScenarioItems,
+                            maidens = lastState.Maidens,
+                        } : null;
+
+                        string jsonCoreCurrent = JsonSerializer.Serialize(coreStateCurrent);
+                        string jsonCoreLast = coreStateLast != null ? JsonSerializer.Serialize(coreStateLast) : "";
+
+                        bool posChanged = currentPosStr != lastPosStr;
+                        bool coreChanged = jsonCoreCurrent != jsonCoreLast;
+
+                        if (coreChanged || forceSync)
                         {
-                            // Debug Output for User Verification
-                            /*
-                            Console.WriteLine("\n[State Update]");
-                            Console.WriteLine($"  Pos: ({state.PlayerX}, {state.PlayerY}) Mode: {state.TransportMode}");
-                            Console.WriteLine($"  Items: {string.Join(", ", state.Inventory)}");
-                            Console.WriteLine($"  Scenario: {string.Join(", ", state.ScenarioItems)}");
-                            Console.WriteLine($"  Party: {string.Join(", ", state.Characters)}");
-                            Console.WriteLine($"  Dungeons: {string.Join(", ", state.ClearedLocations)}");
-                            if (state.SpoilerLog != null && state.SpoilerLog.Count > 0)
-                                Console.WriteLine($"  Spoiler Log: {state.SpoilerLog.Count} entries loaded.");
-                                
-                            if (state.CapsuleSpriteValues != null)
-                                Console.WriteLine($"  Capsule Sprites: {string.Join(", ", state.CapsuleSpriteValues)}");
-                            */
-
+                            if (forceSync) Console.WriteLine("\n[Sync] Forced full update requested by Tracker.");
+                            forceSync = false;
+                            
+                            // Send entire state including position since core changed
                             client.SendState(state);
                             lastState = state;
+                        }
+                        else if (posChanged)
+                        {
+                            // Send ONLY position payload to prevent Python parsing huge objects every step
+                            var posOnlyState = new Dictionary<string, object> {
+                                ["player_x"] = state.PlayerX,
+                                ["player_y"] = state.PlayerY,
+                                ["transport_mode"] = state.TransportMode
+                            };
+                            string jsonPos = JsonSerializer.Serialize(posOnlyState) + "\n";
+                            byte[] data = System.Text.Encoding.UTF8.GetBytes(jsonPos);
+                            // We need reflection or direct stream write to bypass SendState constraint
+                            // Let's just create a dummy GameState that ONLY has position, null out the rest to save wire space
+                            var minimalState = new GameState {
+                                PlayerX = state.PlayerX,
+                                PlayerY = state.PlayerY,
+                                TransportMode = state.TransportMode,
+                                Inventory = null,
+                                Characters = null,
+                                Capsules = null,
+                                CapsuleSpriteValues = null,
+                                ClearedLocations = null,
+                                ScenarioItems = null,
+                                Maidens = null,
+                                SpoilerLog = null
+                            };
+                            client.SendState(minimalState);
+                            
+                            // Update lastState Pos Only
+                            if (lastState != null) {
+                                lastState.PlayerX = state.PlayerX;
+                                lastState.PlayerY = state.PlayerY;
+                                lastState.TransportMode = state.TransportMode;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Process is null or exited, send an empty payload to wipe tracker UI for the next run
+                        if (lastState != null)
+                        {
+                            var emptyState = new GameState();
+                            client.SendState(emptyState);
+                            lastState = null;
+                            Console.WriteLine("Sent empty state to clear tracker.");
                         }
                     }
                 }

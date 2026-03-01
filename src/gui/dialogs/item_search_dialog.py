@@ -1,8 +1,9 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, 
-    QListWidget, QListWidgetItem, QWidget, QLabel, QComboBox
+    QListWidget, QListWidgetItem, QWidget, QLabel, QComboBox, QCompleter
 )
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QIcon
 
 class ItemSearchDialog(QDialog):
     """
@@ -22,6 +23,7 @@ class ItemSearchDialog(QDialog):
         self.current_category = self.all_categories[0] if self.all_categories else ""
         
         self.setWindowTitle(f"Search {location}")
+        self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
         self.resize(400, 500) # Increased size
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         
@@ -39,7 +41,16 @@ class ItemSearchDialog(QDialog):
         self.loc_combo = QComboBox()
         # Populate with cities (requires access to DataLoader or just pass list)
         cities = self.data_loader.get_cities()
-        self.loc_combo.addItems(sorted(cities))
+        excluded_locations = {"Agurio", "Pico Woods", "Gordovan"}
+        filtered_cities = [c for c in cities if c not in excluded_locations]
+        
+        self.loc_combo.addItems(sorted(filtered_cities))
+        
+        self.loc_combo.setEditable(True)
+        completer = QCompleter(sorted(filtered_cities))
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.loc_combo.setCompleter(completer)
         
         # Set current selection
         index = self.loc_combo.findText(self.location)
@@ -85,6 +96,7 @@ class ItemSearchDialog(QDialog):
 
     def update_cat_buttons(self):
         for btn in self.cat_buttons:
+            btn.setEnabled(True)
             if btn.text() == self.current_category:
                 btn.setChecked(True)
                 btn.setStyleSheet("background-color: #555; color: white;")
@@ -146,6 +158,11 @@ class ItemSearchDialog(QDialog):
             self.list_widget.setCurrentRow(nrow + 1)
 
     def _on_location_changed(self, new_location):
+        if new_location not in [self.loc_combo.itemText(i) for i in range(self.loc_combo.count())]:
+            return # Ignore intermediate typing
         self.location = new_location
         self.setWindowTitle(f"Search {self.location}")
+            
+        self.update_cat_buttons()
+        self.load_list()
         self.location_changed.emit(self.location)

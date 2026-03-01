@@ -107,12 +107,6 @@ class ItemsWidget(QWidget):
         btn_layout.addWidget(self.btn_clear)
         layout.addLayout(btn_layout)
         
-        # -- List Area --
-        # Using a QScrollArea with a VBox for manual control like the canvas
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("background-color: #2b2b2b; border: none;")
-        
         self.list_container = QWidget()
         self.list_layout = QVBoxLayout()
         self.list_layout.setContentsMargins(5, 5, 5, 5)
@@ -120,7 +114,12 @@ class ItemsWidget(QWidget):
         self.list_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         self.list_container.setLayout(self.list_layout)
+        
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setStyleSheet("background-color: #2b2b2b; border: none;")
         self.scroll_area.setWidget(self.list_container)
+        
         layout.addWidget(self.scroll_area)
         
         # Button Logic
@@ -161,6 +160,8 @@ class ItemsWidget(QWidget):
             row.remove_requested.connect(self.remove_item)
             self.list_layout.addWidget(row)
             
+        self.list_container.adjustSize()
+            
     def remove_item(self, location, item_name):
         self.entries = [e for e in self.entries if not (e['name'] == item_name and e['location'] == location)]
         self.refresh_list()
@@ -184,17 +185,3 @@ class ItemsWidget(QWidget):
             widget = self.list_layout.itemAt(i).widget()
             if isinstance(widget, AddedItemEntry):
                 widget.update_font_size(size)
-                
-    def refresh_list(self):
-        # Clear layout
-        while self.list_layout.count():
-            child = self.list_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-                
-        # Rebuild
-        font_size = getattr(self, 'current_font_size', 11)
-        for entry in self.entries:
-            row = AddedItemEntry(entry['location'], entry['name'], font_size=font_size)
-            row.remove_requested.connect(self.remove_item)
-            self.list_layout.addWidget(row)

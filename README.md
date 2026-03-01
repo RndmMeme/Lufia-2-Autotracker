@@ -4,6 +4,24 @@ A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
 
+## ✨ New in v1.4.4
+
+*   **Scalable Windows**: Converted Maidens and Characters panels to QGraphicsView, allowing contents to scale gracefully when their Dock borders are resized.
+*   **Icon Sizing**: Added dedicated (+/-) scaling buttons for picture sizes across all icon-based widgets, including Characters, Maidens, Tools, and Keys.
+*   **Recover Widgets**: Centralized accidentally closed docks into a custom 'Recover Widgets' menu options list.
+*   **Location Text Toggle**: You can now toggle the text labels identifying where characters are found on/off inside the Custom menu.
+*   **City Search Bar**: Formatted the Item Search dropdown as an editable Auto-Complete typing field.
+*   **Quality of Life**: Transferred Auto Tracking checkboxes out of the main ribbon into a clean Tracker Dropdown. Purged unreachable map designations from searches.
+*   **Robust Sync Flushing**: Fixed the ghost character location strings and map override persistence bugs so the UI properly wipes during a Game Reset or Manual Clear.
+
+## 🔮 Planned for v1.4.5
+
+*   **Expanded Tracking**: Adding consumable items to the item search database.
+*   **Key Items**: Implementation of a Dragon Egg Counter.
+*   **Optimization**: Memory State Caching to reduce repetitive data transfer.
+*   **Dynamic UI**: Dynamic Sprite Window Support (flowing grids for characters).
+*   **Tooltips**: Item Requirement Tooltips for inaccessible map locations.
+
 ## ✨ New in v1.4.3
 
 *   **Custom Map Shapes**: You can now define individual map dot shapes for **Cities** and **Dungeons**.

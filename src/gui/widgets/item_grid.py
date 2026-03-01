@@ -103,6 +103,7 @@ class ItemGrid(QWidget):
         self.widget_id = widget_id
         self.layout_manager = layout_manager
         self.icon_size = icon_size
+        self.current_scale = 1.0
         self.show_labels = show_labels
         
         # No Layout! Absolute positioning.
@@ -137,23 +138,22 @@ class ItemGrid(QWidget):
         y = 5
         col = 0
         cols = 6
-        spacing_x = self.icon_size + 10
-        spacing_y = self.icon_size + 20 if self.show_labels else self.icon_size + 5
+        spacing_x = int((self.icon_size * self.current_scale) + 10)
+        spacing_y = int((self.icon_size * self.current_scale) + 20) if self.show_labels else int((self.icon_size * self.current_scale) + 5)
         
         for name, icon in self.icons.items():
-            default_x = x + (col * spacing_x)
-            default_y = y
-            
-            col += 1
-            if col >= cols:
-                col = 0
-                y += spacing_y
-                
             pos = self.layout_manager.get_position(self.widget_id, name)
             if pos:
                 icon.move(pos[0], pos[1])
             else:
+                default_x = x + (col * spacing_x)
+                default_y = y
                 icon.move(default_x, default_y)
+                
+                col += 1
+                if col >= cols:
+                    col = 0
+                    y += spacing_y
                 
         self.update_min_size()
 
@@ -183,3 +183,10 @@ class ItemGrid(QWidget):
     def set_content_font_size(self, size):
         for icon in self.icons.values():
             icon.set_font_size(size)
+
+    def set_icon_scale(self, scale):
+        self.current_scale = scale
+        for icon in self.icons.values():
+            if hasattr(icon, 'set_icon_scale'):
+                icon.set_icon_scale(scale)
+        self.update_positions()

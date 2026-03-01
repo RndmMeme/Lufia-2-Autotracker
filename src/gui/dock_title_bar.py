@@ -38,6 +38,21 @@ class DockTitleBar(QWidget):
         
         self.set_font_controls_visible(False)
         
+        # Icon Size Controls (Hidden by default)
+        self.icon_down_btn = QPushButton("🖼-")
+        self.icon_down_btn.setFixedSize(26, 20)
+        self.icon_down_btn.setToolTip("Decrease Icon Size")
+        self.icon_down_btn.clicked.connect(lambda: self.dock_widget.adjust_icon_size(-1))
+        self.layout.addWidget(self.icon_down_btn)
+        
+        self.icon_up_btn = QPushButton("🖼+")
+        self.icon_up_btn.setFixedSize(26, 20)
+        self.icon_up_btn.setToolTip("Increase Icon Size")
+        self.icon_up_btn.clicked.connect(lambda: self.dock_widget.adjust_icon_size(1))
+        self.layout.addWidget(self.icon_up_btn)
+        
+        self.set_icon_controls_visible(False)
+        
         # Pin Button (Toggle Movable)
         self.pin_btn = QPushButton("📌") # Unicode Pushpin
         self.pin_btn.setCheckable(True)
@@ -70,6 +85,10 @@ class DockTitleBar(QWidget):
     def set_font_controls_visible(self, visible):
         self.font_down_btn.setVisible(visible)
         self.font_up_btn.setVisible(visible)
+
+    def set_icon_controls_visible(self, visible):
+        self.icon_down_btn.setVisible(visible)
+        self.icon_up_btn.setVisible(visible)
 
     def _toggle_pin(self, checked):
         features = self.dock_widget.features()

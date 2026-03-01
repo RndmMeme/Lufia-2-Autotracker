@@ -100,6 +100,11 @@ class CharacterCell(QWidget):
         self.name_label.setStyleSheet(f"font-size: {size}px; font-weight: bold; color: white;")
         self.loc_label.setStyleSheet(f"font-size: {max(8, size-2)}px; color: #AAAAAA;")
         
+    def set_icon_scale(self, scale):
+        size = int(50 * scale)
+        self.icon_label.setFixedSize(size, size)
+        self.setFixedWidth(max(80, size + 20))
+        
     def set_pixmap(self, pixmap):
         self.icon_label.setPixmap(pixmap)
         
@@ -135,6 +140,8 @@ class CharactersCanvas(QWidget):
         
         self.cells = {} # name -> CharacterCell
         self.edit_mode = False
+        self.show_locations = True
+        self.icon_scale = 1.0
         
         self.init_ui()
         self.connect_signals()
@@ -259,6 +266,16 @@ class CharactersCanvas(QWidget):
         for cell in self.cells.values():
             cell.set_font_size(size)
 
+    def set_icon_scale(self, scale):
+        self.icon_scale = scale
+        for cell in self.cells.values():
+            cell.set_icon_scale(scale)
+        self._reflow_grid()
+
+    def set_locations_visible(self, visible):
+        self.show_locations = visible
+        self.refresh_state()
+
     def toggle_character(self, name):
         is_obtained = self.state_manager.obtained_characters.get(name, False)
         self.state_manager.set_character_obtained(name, not is_obtained)
@@ -324,7 +341,7 @@ class CharactersCanvas(QWidget):
                 painter.end()
                 cell.set_pixmap(gray_pix)
                 
-            if location:
+            if location and getattr(self, 'show_locations', True):
                 cell.set_location_text(location)
             else:
                 cell.set_location_text(None)
@@ -345,16 +362,8 @@ class CharactersWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True) # Canvas sets its own MinSize, ScrollArea respects it.
-        # Actually setWidgetResizable(True) makes the widget resize to ScrollArea.
-        # We want the widget to dictate size if larger, else scroll.
-        # But if we setResizable(True), it expands to fill space, but if minSize > area, scrollbars appear.
-        
         self.canvas = CharactersCanvas(data_loader, state_manager, layout_manager, self)
-        self.scroll_area.setWidget(self.canvas)
-        
-        self.layout.addWidget(self.scroll_area)
+        self.layout.addWidget(self.canvas)
         
         # Connect signals
         self.state_manager.character_changed.connect(self.refresh_state)
@@ -363,6 +372,12 @@ class CharactersWidget(QWidget):
         
     def set_content_font_size(self, size):
         self.canvas.set_content_font_size(size)
+        
+    def set_icon_scale(self, scale):
+        self.canvas.set_icon_scale(scale)
+        
+    def set_locations_visible(self, visible):
+        self.canvas.set_locations_visible(visible)
         
     def set_edit_mode(self, enabled):
         self.canvas.set_edit_mode(enabled)
