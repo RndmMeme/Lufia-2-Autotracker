@@ -324,7 +324,7 @@ class CharactersCanvas(QWidget):
                 dim_pix = QPixmap(pix.size())
                 dim_pix.fill(Qt.GlobalColor.transparent)
                 painter = QPainter(dim_pix)
-                painter.setOpacity(0.85) # Brighter
+                painter.setOpacity(0.7) # User: 0.85 too bright, 0.5 too dim.
                 painter.drawPixmap(0, 0, pix)
                 painter.end()
                 

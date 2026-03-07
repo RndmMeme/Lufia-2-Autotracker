@@ -12,6 +12,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = Lufia2AutoTracker.Helper
-build_property.ProjectDir = D:\Projects\Python\Lufia2AutoTrackerv.1.3\lufia2_tracker_v1.4\src\helper\
+build_property.ProjectDir = D:\Projects\Python\lufia2-autotracker-v1.4.3\src\helper\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

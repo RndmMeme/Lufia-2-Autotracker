@@ -36,28 +36,6 @@ class HelperInterface:
         self.thread = threading.Thread(target=self._server_loop, daemon=True)
         self.thread.start()
 
-    def _server_loop(self):
-        try:
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.bind((HOST, PORT))
-            self.server_socket.listen(1)
-            logging.info(f"Helper Interface listening on {HOST}:{PORT}")
-            
-            while self.running:
-                try:
-                    self.server_socket.settimeout(1.0)
-                    client, addr = self.server_socket.accept()
-                    logging.info(f"Helper connected from {addr}")
-                    self.client_socket = client
-                    self._handle_client(client)
-                except socket.timeout:
-                    continue
-                except Exception as e:
-                    logging.error(f"Server accept error: {e}")
-        except Exception as e:
-            logging.error(f"Server setup error: {e}")
-        finally:
-            self.stop()
 
     def _handle_client(self, client):
         """Reads newline-delimited JSON from the client."""
@@ -65,7 +43,9 @@ class HelperInterface:
         while self.running:
             try:
                 data = client.recv(4096)
-                if not data: break
+                if not data: 
+                    if self.callback: self.callback({"error": "Tracker socket disconnected cleanly."})
+                    break
                 
                 buffer += data.decode('utf-8')
                 
@@ -91,10 +71,13 @@ class HelperInterface:
                 # Socket closed or error
                 if self.running:
                     logging.error("Client read error (OSError). Stopping.")
+                    if self.callback: self.callback({"error": "Tracker socket connection lost (OSError)."})
                 break
             except Exception as e:
                 if self.running:
-                     logging.error(f"Client read error: {e}")
+                     import traceback
+                     logging.error(f"Client read error: {e}\n{traceback.format_exc()}")
+                     if self.callback: self.callback({"error": f"Tracker socket exception: {e}"})
                 break
 
     def _process_payload(self, json_str):
@@ -104,8 +87,8 @@ class HelperInterface:
             data = json.loads(json_str)
             if self.callback:
                 self.callback(data)
-        except json.JSONDecodeError:
-            pass # logging.warning(f"Incomplete JSON: {json_str[:20]}...")
+        except json.JSONDecodeError as e:
+            logging.error(f"Incomplete/Invalid JSON: {e} - Data: {json_str[:150]}...")
 
     def launch_helper(self):
         """Launches the C# Helper executable."""
@@ -154,6 +137,15 @@ class HelperInterface:
         finally:
             stream.close()
 
+    def send_command(self, cmd: str):
+        """Sends a command string to the connected C# helper."""
+        if self.client_socket:
+            try:
+                # Append newline to match reading logic
+                self.client_socket.sendall((cmd + "\n").encode('utf-8'))
+            except Exception as e:
+                logging.error(f"Error sending command: {e}")
+
     def stop(self):
         self.running = False
         try:
@@ -176,6 +168,7 @@ class HelperInterface:
                 except subprocess.TimeoutExpired:
                     logging.warning("Helper process did not terminate. Force killing...")
                     self.process.kill()
+                    self.process.wait(timeout=2)
             except Exception as e:
                 logging.error(f"Error stopping helper: {e}")
             self.process = None
@@ -183,6 +176,7 @@ class HelperInterface:
     def _server_loop(self):
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind((HOST, PORT))
             self.server_socket.listen(1)
             self.server_socket.settimeout(1.0)
@@ -215,23 +209,16 @@ class HelperInterface:
                 except socket.timeout:
                     continue
                 except Exception as e:
-                    logging.error(f"Server accept error: {e}")
+                    import traceback
+                    logging.error(f"Server accept error: {e}\n{traceback.format_exc()}")
                     if not self.running: break
                     
         except Exception as e:
-            logging.error(f"Server setup error: {e}")
+            import traceback
+            logging.error(f"Server setup error: {e}\n{traceback.format_exc()}")
         finally:
+            if self.callback:
+                self.callback({"error": "Tracker socket closed or timed out."})
             self.stop()
-
-    def request_sync(self):
-        """Sends a SYNC command to the connected C# helper to force a full state refresh."""
-        if self.client_socket:
-            try:
-                self.client_socket.sendall(b"SYNC\n")
-                logging.info("Sent SYNC request to Tracker Helper.")
-            except Exception as e:
-                logging.error(f"Failed to send SYNC request: {e}")
-        else:
-            logging.warning("Cannot send SYNC request: Not connected to Tracker Helper.")
 
 

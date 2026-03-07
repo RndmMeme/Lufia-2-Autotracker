@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Projects\\Python\\lufia2_tracker_v1.4\\src\\helper\\Lufia2AutoTracker.Helper.csproj": {}
+    "D:\\Projects\\Python\\lufia2-autotracker-v1.4.3\\src\\helper\\Lufia2AutoTracker.Helper.csproj": {}
   },
   "projects": {
-    "D:\\Projects\\Python\\lufia2_tracker_v1.4\\src\\helper\\Lufia2AutoTracker.Helper.csproj": {
+    "D:\\Projects\\Python\\lufia2-autotracker-v1.4.3\\src\\helper\\Lufia2AutoTracker.Helper.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Projects\\Python\\lufia2_tracker_v1.4\\src\\helper\\Lufia2AutoTracker.Helper.csproj",
+        "projectUniqueName": "D:\\Projects\\Python\\lufia2-autotracker-v1.4.3\\src\\helper\\Lufia2AutoTracker.Helper.csproj",
         "projectName": "Lufia2AutoTracker.Helper",
-        "projectPath": "D:\\Projects\\Python\\lufia2_tracker_v1.4\\src\\helper\\Lufia2AutoTracker.Helper.csproj",
+        "projectPath": "D:\\Projects\\Python\\lufia2-autotracker-v1.4.3\\src\\helper\\Lufia2AutoTracker.Helper.csproj",
         "packagesPath": "C:\\Users\\admin\\.nuget\\packages\\",
-        "outputPath": "D:\\Projects\\Python\\lufia2_tracker_v1.4\\src\\helper\\obj\\",
+        "outputPath": "D:\\Projects\\Python\\lufia2-autotracker-v1.4.3\\src\\helper\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\admin\\AppData\\Roaming\\NuGet\\NuGet.Config"

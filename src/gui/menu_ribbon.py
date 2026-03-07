@@ -34,6 +34,7 @@ class MenuRibbon(QWidget):
     edit_layout_toggled = pyqtSignal(bool)
     
     restore_windows_requested = pyqtSignal()
+    dock_all_requested = pyqtSignal()
     icon_adj_toggled = pyqtSignal(bool)
     locations_text_toggled = pyqtSignal(bool)
     
@@ -123,99 +124,90 @@ class MenuRibbon(QWidget):
 
         tracker_menu.addMenu(self.auto_menu)
 
-        # --- Custom (Middle) ---
-        custom_menu = self.menu_bar.addMenu("Custom")
-        
-        # Layout & Visuals
-        self.font_adj_action = QAction("Show Font Adj", self)
-        self.font_adj_action.setCheckable(True)
-        self.font_adj_action.toggled.connect(self.font_adj_toggled.emit)
-        custom_menu.addAction(self.font_adj_action)
+        # --- Layout (Middle) ---
+        layout_menu = self.menu_bar.addMenu("Layout")
         
         self.edit_layout_action = QAction("Edit Layout", self)
         self.edit_layout_action.setCheckable(True)
         self.edit_layout_action.toggled.connect(self.edit_layout_toggled.emit)
-        custom_menu.addAction(self.edit_layout_action)
+        layout_menu.addAction(self.edit_layout_action)
         
-        self.icon_adj_action = QAction("Show Icon Size Adj", self)
+        layout_menu.addAction("Reset Picture Positions", self.reset_pictures_requested.emit)
+        layout_menu.addAction("Restore Closed Windows", self.restore_windows_requested.emit)
+        layout_menu.addAction("Dock All Windows", self.dock_all_requested.emit)
+
+        # --- View (Middle) ---
+        view_menu = self.menu_bar.addMenu("View")
+        
+        self.font_adj_action = QAction("Show Font Controls", self)
+        self.font_adj_action.setCheckable(True)
+        self.font_adj_action.toggled.connect(self.font_adj_toggled.emit)
+        view_menu.addAction(self.font_adj_action)
+        
+        self.icon_adj_action = QAction("Show Icon Size Controls", self)
         self.icon_adj_action.setCheckable(True)
         self.icon_adj_action.toggled.connect(self.icon_adj_toggled.emit)
-        custom_menu.addAction(self.icon_adj_action)
+        view_menu.addAction(self.icon_adj_action)
         
         self.loc_text_action = QAction("Show Locations Text", self)
         self.loc_text_action.setCheckable(True)
         self.loc_text_action.setChecked(True)
         self.loc_text_action.toggled.connect(self.locations_text_toggled.emit)
-        custom_menu.addAction(self.loc_text_action)
+        view_menu.addAction(self.loc_text_action)
         
-        custom_menu.addAction("Header Color", self.header_color_requested.emit)
+        view_menu.addSeparator()
         
-        custom_menu.addSeparator()
-        
-        # Player Marker
-        custom_menu.addAction("Player Color", self.player_color_requested.emit)
-        
-        # Player Shape Submenu
-        shape_menu = QMenu("Player Shape", self)
-        shape_menu.addAction("Triangle", lambda: self.player_shape_requested.emit("triangle"))
-        shape_menu.addAction("Rhombus", lambda: self.player_shape_requested.emit("rhombus"))
-        shape_menu.addAction("Square", lambda: self.player_shape_requested.emit("square"))
-        shape_menu.addAction("Active Sprite", lambda: self.player_shape_requested.emit("sprite"))
-        custom_menu.addMenu(shape_menu)
-        
-        # Player Size Submenu
-        size_menu = QMenu("Player Size", self)
-        size_menu.addAction("Normal (1x)", lambda: self.player_size_requested.emit(1.0))
-        size_menu.addAction("2x", lambda: self.player_size_requested.emit(2.0))
-        size_menu.addAction("3x", lambda: self.player_size_requested.emit(3.0))
-        size_menu.addAction("4x", lambda: self.player_size_requested.emit(4.0))
-        custom_menu.addMenu(size_menu)
-
-        custom_menu.addSeparator()
-
-        # City Styling
-        custom_menu.addAction("City Color", self.city_color_requested.emit)
-        city_shape_menu = QMenu("City Shape", self)
-        city_shape_menu.addAction("Circle", lambda: self.city_shape_requested.emit("circle"))
-        city_shape_menu.addAction("Square", lambda: self.city_shape_requested.emit("square"))
-        city_shape_menu.addAction("Rhombus", lambda: self.city_shape_requested.emit("rhombus"))
-        city_shape_menu.addAction("Triangle", lambda: self.city_shape_requested.emit("triangle"))
-        custom_menu.addMenu(city_shape_menu)
-
-        dungeon_shape_menu = QMenu("Dungeon Shape", self)
-        dungeon_shape_menu.addAction("Circle", lambda: self.dungeon_shape_requested.emit("circle"))
-        dungeon_shape_menu.addAction("Square", lambda: self.dungeon_shape_requested.emit("square"))
-        dungeon_shape_menu.addAction("Rhombus", lambda: self.dungeon_shape_requested.emit("rhombus"))
-        dungeon_shape_menu.addAction("Triangle", lambda: self.dungeon_shape_requested.emit("triangle"))
-        custom_menu.addMenu(dungeon_shape_menu)
-        custom_menu.addSeparator()
-
-
-        
-        # Reset / Save Picture Positions / Windows
-        save_layout_action = custom_menu.addAction("Save Current Layout as Default", self.save_layout_default_requested.emit)
-        save_layout_action.setVisible(False)
-        custom_menu.addAction("Reset Picture Positions", self.reset_pictures_requested.emit)
-        custom_menu.addAction("Restore Closed Windows", self.restore_windows_requested.emit)
-
-        custom_menu.addSeparator()
-        
-        # Show Sprites Submenu
-        sprite_menu = QMenu("Show Sprites", self)
-        
+        sprite_menu = QMenu("Map Sprites", self)
         self.sprite_actions = {}
         for cat in ["All", "Chars", "Capsules", "Maidens"]:
             action = QAction(cat, self)
             action.setCheckable(True)
             action.setChecked(True)
-            # Use lower case for internal keys
             action.toggled.connect(lambda checked, c=cat.lower(): self.sprite_visibility_toggled.emit(c, checked))
             if cat == "All":
                  action.toggled.connect(self._on_all_sprites_toggled)
             self.sprite_actions[cat] = action
             sprite_menu.addAction(action)
             
-        custom_menu.addMenu(sprite_menu)
+        view_menu.addMenu(sprite_menu)
+        
+        # --- Style (Middle) ---
+        style_menu = self.menu_bar.addMenu("Style")
+        
+        style_menu.addAction("Header Color", self.header_color_requested.emit)
+        style_menu.addSeparator()
+        
+        style_menu.addAction("Player Color", self.player_color_requested.emit)
+        shape_menu = QMenu("Player Shape", self)
+        shape_menu.addAction("Triangle", lambda: self.player_shape_requested.emit("triangle"))
+        shape_menu.addAction("Rhombus", lambda: self.player_shape_requested.emit("rhombus"))
+        shape_menu.addAction("Square", lambda: self.player_shape_requested.emit("square"))
+        shape_menu.addAction("Active Sprite", lambda: self.player_shape_requested.emit("sprite"))
+        style_menu.addMenu(shape_menu)
+        
+        size_menu = QMenu("Player Size", self)
+        size_menu.addAction("Normal (1x)", lambda: self.player_size_requested.emit(1.0))
+        size_menu.addAction("2x", lambda: self.player_size_requested.emit(2.0))
+        size_menu.addAction("3x", lambda: self.player_size_requested.emit(3.0))
+        size_menu.addAction("4x", lambda: self.player_size_requested.emit(4.0))
+        style_menu.addMenu(size_menu)
+        
+        style_menu.addSeparator()
+        
+        style_menu.addAction("City Color", self.city_color_requested.emit)
+        city_shape_menu = QMenu("City Shape", self)
+        city_shape_menu.addAction("Circle", lambda: self.city_shape_requested.emit("circle"))
+        city_shape_menu.addAction("Square", lambda: self.city_shape_requested.emit("square"))
+        city_shape_menu.addAction("Rhombus", lambda: self.city_shape_requested.emit("rhombus"))
+        city_shape_menu.addAction("Triangle", lambda: self.city_shape_requested.emit("triangle"))
+        style_menu.addMenu(city_shape_menu)
+        
+        dungeon_shape_menu = QMenu("Dungeon Shape", self)
+        dungeon_shape_menu.addAction("Circle", lambda: self.dungeon_shape_requested.emit("circle"))
+        dungeon_shape_menu.addAction("Square", lambda: self.dungeon_shape_requested.emit("square"))
+        dungeon_shape_menu.addAction("Rhombus", lambda: self.dungeon_shape_requested.emit("rhombus"))
+        dungeon_shape_menu.addAction("Triangle", lambda: self.dungeon_shape_requested.emit("triangle"))
+        style_menu.addMenu(dungeon_shape_menu)
         
         # --- Help / About (Right of Custom) ---
         about_action = self.menu_bar.addAction("About")
@@ -234,6 +226,11 @@ class MenuRibbon(QWidget):
         self.lbl_auto = QLabel("Auto Tracking (Active)")
         self.lbl_auto.setStyleSheet("color: lightgreen; font-weight: bold;")
         self.cb_layout.addWidget(self.lbl_auto)
+        
+        self.lbl_scanning = QLabel("Scanning in progress...")
+        self.lbl_scanning.setStyleSheet("color: yellow; font-weight: bold;")
+        self.lbl_scanning.hide()
+        self.cb_layout.addWidget(self.lbl_scanning)
 
         self.checkbox_frame.hide() 
         layout.addWidget(self.checkbox_frame)
@@ -249,6 +246,19 @@ class MenuRibbon(QWidget):
     def _show_help(self):
         dlg = HelpDialog(self)
         dlg.exec()
+
+    def set_scanning_status(self, is_scanning: bool):
+        if is_scanning:
+            self.lbl_auto.hide()
+            self.lbl_scanning.show()
+            self.checkbox_frame.show()
+        else:
+            self.lbl_scanning.hide()
+            if self.auto_active:
+                self.lbl_auto.show()
+                self.checkbox_frame.show()
+            else:
+                self.checkbox_frame.hide()
 
     def _toggle_auto(self, checked=None):
         if checked is not None:

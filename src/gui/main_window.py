@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         self.logic_engine = logic_engine
         self.layout_manager = LayoutManager()
         
-        self.setWindowTitle("Lufia 2 Auto Tracker v1.4")
+        self.setWindowTitle("Lufia 2 Auto Tracker v1.4.5")
         from PyQt6.QtGui import QIcon
         self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
         self.resize(1024, 768)
@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.player_size_requested.connect(self.map_widget.set_player_scale)
         self.menu_ribbon.edit_layout_toggled.connect(self._set_edit_mode)
         self.menu_ribbon.restore_windows_requested.connect(self._restore_closed_windows)
+        self.menu_ribbon.dock_all_requested.connect(self._dock_all_windows)
         self.menu_ribbon.icon_adj_toggled.connect(self._toggle_icon_controls)
         self.menu_ribbon.locations_text_toggled.connect(self._toggle_locations_text)
         
@@ -104,7 +105,14 @@ class MainWindow(QMainWindow):
             self.maiden_widget.set_locations_visible(visible)
             
     def _restore_closed_windows(self):
-        for dock in self.findChildren(PersistentDockWidget):
+        for dock in self.findChildren(QDockWidget):
+            if dock.isHidden():
+                dock.show()
+
+    def _dock_all_windows(self):
+        for dock in self.findChildren(QDockWidget):
+            if dock.isFloating():
+                dock.setFloating(False)
             if dock.isHidden():
                 dock.show()
 
@@ -160,21 +168,22 @@ class MainWindow(QMainWindow):
         Active = Start Listening.
         Inactive = Stop Listening.
         """
+        if active:
+            self.menu_ribbon.set_scanning_status(True)
+        else:
+            self.menu_ribbon.set_scanning_status(False)
         self.state_manager.toggle_auto_tracking(active)
 
     def _handle_sync_request(self, category):
         """
         Sync: Fetch snapshot.
         If Auto is OFF: Start Helper momentarily.
-        If Auto is ON: Ping the helper to bypass diff-cache and send current payload immediately.
         """
         print(f"Sync Requested: {category}")
+        # Simplistic implementation: Enable auto tracking if not active
         if not self.state_manager.helper.running:
              self.state_manager.toggle_auto_tracking(True)
              self._is_syncing = True
-        else:
-             # Already running, just force a cache flush
-             self.state_manager.force_sync()
 
     def _pick_city_color(self):
         from PyQt6.QtWidgets import QColorDialog
@@ -225,16 +234,24 @@ class MainWindow(QMainWindow):
 
     def _on_auto_update_received(self, payload):
         """Called when StateManager processes an update."""
-        # If we were doing a one-shot sync, stop now.
-        if getattr(self, '_is_syncing', False):
-            self.state_manager.toggle_auto_tracking(False)
-            self._is_syncing = False
-            print("Sync Snapshot Complete")
-        
-        # Just refresh the UI to show new states
-        self._refresh_all()
-        # Ensure sprite image is up to date if reusing "sprite" mode
-        self._update_player_sprite_if_active()
+        try:
+            # Hide scanning indicator
+            self.menu_ribbon.set_scanning_status(False)
+            
+            # If we were doing a one-shot sync, stop now.
+            if getattr(self, '_is_syncing', False):
+                self.state_manager.toggle_auto_tracking(False)
+                self._is_syncing = False
+                print("Sync Snapshot Complete")
+            
+            # Just refresh the UI to show new states
+            self.state_manager.process_auto_update(payload)
+            self._refresh_all()
+            # Ensure sprite image is up to date if reusing "sprite" mode
+            self._update_player_sprite_if_active()
+        except Exception as e:
+            import traceback
+            logging.error(f"CRASH in UI Thread (_on_auto_update_received):\\n{traceback.format_exc()}")
 
     def _setup_docking_ui(self):
         # Allow nested docks
@@ -360,6 +377,7 @@ class MainWindow(QMainWindow):
         self.state_manager.inventory_changed.connect(lambda _: self._refresh_all())
         
         # UI Signals -> State Manager Overrides
+        self.menu_ribbon.reset_requested.connect(self.state_manager.reset_state)
         self.map_widget.location_clicked.connect(self._handle_location_click)
         self.map_widget.location_right_clicked.connect(self._handle_location_right_click)
         self.items_widget.add_requested.connect(self._open_item_search)
@@ -374,6 +392,9 @@ class MainWindow(QMainWindow):
         
         # Reset Signal
         self.state_manager.reset_occurred.connect(self._on_reset_occurred)
+        
+        # Sync Signal from Menu
+        self.menu_ribbon.sync_requested.connect(self._on_sync_requested)
         
         # New Signals (v1.4 Refinements)
         self.menu_ribbon.sprite_visibility_toggled.connect(self.map_widget.set_sprites_visibility)
@@ -404,6 +425,15 @@ class MainWindow(QMainWindow):
             
         # Refresh Logic (Just in case)
         self._refresh_all()
+        logging.info("MainWindow: Reset UI elements.")
+
+    def _on_sync_requested(self, category):
+        """Handle Sync request from menu (All, Tools, etc)."""
+        logging.info(f"MainWindow: Sync requested for category: {category}")
+        self.menu_ribbon.set_scanning_status(True)
+        self.state_manager.request_rescan()
+        # If we really want a 'fresh' scan from Helper, we'd need to send a command TO the helper.
+        # But usually 'Sync' means 'I updated something manually or it feels stuck, refresh logic'.
         
     def _refresh_all(self):
         """Re-runs logic engine and pushes updates."""

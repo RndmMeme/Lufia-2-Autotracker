@@ -17,20 +17,27 @@ namespace Lufia2AutoTracker.Helper
             Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4");
             
             var client = new TrackerClient();
-            client.StartListening(); // Start listening for incoming commands like "SYNC"
-
+            client.Connect();
+            client.StartListening();
+            
             var scanner = new ProcessScanner();
             DataReaders reader = null;
             GameState lastState = null;
             Process process = null;
             MemoryProfile currentProfile = null;
             
-            bool forceSync = false;
-            client.SyncRequested += () => { forceSync = true; };
-            
             // Spoiler Log Cache (only read once per session usually)
             List<Dictionary<string, string>> cachedSpoilerLog = null;
             int _spoilerAttemptCount = 0;
+
+            client.CommandReceived += (cmd) => {
+                if (cmd.Contains("RESCAN")) {
+                    Console.WriteLine("RESCAN Requested: Resetting process and cache...");
+                    cachedSpoilerLog = null;
+                    _spoilerAttemptCount = 0;
+                    process = null; // Forces re-scanning for emulator and WRAM offset
+                }
+            };
 
             while (true)
             {
@@ -117,7 +124,7 @@ namespace Lufia2AutoTracker.Helper
                                 IntPtr romBasePtr = romPtr.HasValue ? romPtr.Value : IntPtr.Zero;
                                 // Pass isNwa=false because Relative Offsets are consistent across versions (Diff is 308 for both)
                                 // My previous MemoryProfile edit was based on incorrect math (302), so we Force False here.
-                                currentProfile = MemoryProfile.CreateFromOffsets((int)wramOffsetLong, romBasePtr, false);
+                                currentProfile = MemoryProfile.CreateFromOffsets(wramPtr.Value, romBasePtr, false);
                                 
                                 if (isNwa) currentProfile.Name += " [NWA Adjusted]";
                                 
@@ -227,7 +234,6 @@ namespace Lufia2AutoTracker.Helper
                         var state = reader.ReadGameState();
                         
                         // Read Spoiler Log only if empty/null and we have a valid state (game running)
-                        // Limit attempts to avoid flooding console if parsing fails
                         if ((cachedSpoilerLog == null || cachedSpoilerLog.Count == 0) && _spoilerAttemptCount < 10)
                         {
                              _spoilerAttemptCount++;
@@ -237,18 +243,12 @@ namespace Lufia2AutoTracker.Helper
                                  cachedSpoilerLog = logs;
                                  Console.WriteLine($"Parsed Spoiler Log: {logs.Count} entries.");
                              }
-                             else
-                             {
-                                 if (_spoilerAttemptCount >= 10) Console.WriteLine("DEBUG: Max Spoiler Log attempts reached. Stopping retries.");
-                             }
                         }
                         state.SpoilerLog = cachedSpoilerLog;
 
-                        // Separate Position from Core Data for Diffing
                         var currentPosStr = $"{state.PlayerX},{state.PlayerY},{state.TransportMode}";
                         var lastPosStr = lastState != null ? $"{lastState.PlayerX},{lastState.PlayerY},{lastState.TransportMode}" : "";
 
-                        // Create a clone of state without position for core diffing
                         var coreStateCurrent = new {
                             inventory = state.Inventory,
                             characters = state.Characters,
@@ -256,8 +256,7 @@ namespace Lufia2AutoTracker.Helper
                             capsule_sprite_values = state.CapsuleSpriteValues,
                             cleared_locations = state.ClearedLocations,
                             scenario = state.ScenarioItems,
-                            maidens = state.Maidens,
-                            // Spoiler log ignored in diff to save CPU
+                            maidens = state.Maidens
                         };
                         var coreStateLast = lastState != null ? new {
                             inventory = lastState.Inventory,
@@ -266,36 +265,22 @@ namespace Lufia2AutoTracker.Helper
                             capsule_sprite_values = lastState.CapsuleSpriteValues,
                             cleared_locations = lastState.ClearedLocations,
                             scenario = lastState.ScenarioItems,
-                            maidens = lastState.Maidens,
+                            maidens = lastState.Maidens
                         } : null;
 
-                        string jsonCoreCurrent = JsonSerializer.Serialize(coreStateCurrent);
-                        string jsonCoreLast = coreStateLast != null ? JsonSerializer.Serialize(coreStateLast) : "";
+                        string jsonCoreCurrent = System.Text.Json.JsonSerializer.Serialize(coreStateCurrent);
+                        string jsonCoreLast = coreStateLast != null ? System.Text.Json.JsonSerializer.Serialize(coreStateLast) : "";
 
                         bool posChanged = currentPosStr != lastPosStr;
                         bool coreChanged = jsonCoreCurrent != jsonCoreLast;
 
-                        if (coreChanged || forceSync)
+                        if (coreChanged)
                         {
-                            if (forceSync) Console.WriteLine("\n[Sync] Forced full update requested by Tracker.");
-                            forceSync = false;
-                            
-                            // Send entire state including position since core changed
                             client.SendState(state);
                             lastState = state;
                         }
                         else if (posChanged)
                         {
-                            // Send ONLY position payload to prevent Python parsing huge objects every step
-                            var posOnlyState = new Dictionary<string, object> {
-                                ["player_x"] = state.PlayerX,
-                                ["player_y"] = state.PlayerY,
-                                ["transport_mode"] = state.TransportMode
-                            };
-                            string jsonPos = JsonSerializer.Serialize(posOnlyState) + "\n";
-                            byte[] data = System.Text.Encoding.UTF8.GetBytes(jsonPos);
-                            // We need reflection or direct stream write to bypass SendState constraint
-                            // Let's just create a dummy GameState that ONLY has position, null out the rest to save wire space
                             var minimalState = new GameState {
                                 PlayerX = state.PlayerX,
                                 PlayerY = state.PlayerY,
@@ -311,7 +296,6 @@ namespace Lufia2AutoTracker.Helper
                             };
                             client.SendState(minimalState);
                             
-                            // Update lastState Pos Only
                             if (lastState != null) {
                                 lastState.PlayerX = state.PlayerX;
                                 lastState.PlayerY = state.PlayerY;
@@ -319,27 +303,27 @@ namespace Lufia2AutoTracker.Helper
                             }
                         }
                     }
-                    else
-                    {
-                        // Process is null or exited, send an empty payload to wipe tracker UI for the next run
-                        if (lastState != null)
-                        {
-                            var emptyState = new GameState();
-                            client.SendState(emptyState);
-                            lastState = null;
-                            Console.WriteLine("Sent empty state to clear tracker.");
-                        }
-                    }
                 }
+
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Loop Error: {ex.Message}");
                     process = null; // Retry
+                    lastSentJson = ""; // Reset on error
                 }
 
                 Thread.Sleep(100);
             }
         }
+
+        private static bool IsInWramBlock(IntPtr processBase, IntPtr candidate, long minSize)
+        {
+            // Simple check: Snes9x usually maps WRAM at > baseAddress. 
+            // Better to rely on Gold scanning.
+            return (long)candidate > (long)processBase;
+        }
+
+        private static string lastSentJson = "";
 
         private static void LoadDungeons(string filename)
         {

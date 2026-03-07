@@ -22,12 +22,18 @@ namespace Lufia2AutoTracker.Helper.Core
 
         private byte[] ReadMemory(int offset, int size)
         {
-            IntPtr address = (IntPtr)((long)_baseAddress + offset);
+            IntPtr baseAddr = _profile.ScannedWramBase != IntPtr.Zero ? _profile.ScannedWramBase : _baseAddress;
+            IntPtr address = (IntPtr)((long)baseAddr + offset);
             byte[] buffer = new byte[size];
             IntPtr bytesRead;
             if (NativeMethods.ReadProcessMemory(_processHandle, address, buffer, size, out bytesRead))
             {
                 return buffer;
+            }
+            else
+            {
+                int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+                Console.WriteLine($"[DEBUG] ReadMemory FAILED at 0x{address.ToString("X")} (Size: {size}) - Win32 Error: {err}");
             }
             return new byte[size]; // Return empty on failure
         }

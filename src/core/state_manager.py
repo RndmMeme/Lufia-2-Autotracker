@@ -39,9 +39,11 @@ class StateManager(QObject):
         self._locations: Dict[str, str] = {}  # name -> state
         self._characters: Dict[str, bool] = {}
         self._character_locations: Dict[str, str] = {}
+        self._manual_character_locations: Dict[str, str] = {} # Persistent manual assignments
         self._active_party = set()
         self._active_party_list = [] # Ordered list for Sprite Display
         self._obtained_capsules = set()
+        self._manual_sprite_removals = set() # Track characters manually removed from map
         self._player_pos = QPointF(0, 0)
         self._game_world_size = (4096, 4096)  # Standard SNES Map Size
         self._canvas_size = (400, 400)        # Fixed Canvas Size
@@ -130,19 +132,63 @@ class StateManager(QObject):
         self.inventory_changed.emit(self.inventory)
         logging.info(f"Manual override: Item {item_name} -> {new_state}")
 
-    def reset_overrides(self):
-        """Clears all manual overrides, reverting to raw external data."""
+        logging.info("Manual overrides reset.")
+
+    def reset_state(self):
+        """Full reset of tracker state (Raw Data + Overrides + Manual Sprite removals)."""
+        self._inventory.clear()
+        self._locations.clear()
+        self._characters.clear()
+        self._character_locations.clear()
+        self._manual_character_locations.clear()
+        self._active_party.clear()
+        self._active_party_list.clear()
+        self._obtained_capsules.clear()
         self._manual_inventory_overrides.clear()
         self._manual_location_overrides.clear()
         self._manual_character_overrides.clear()
+        self._manual_sprite_removals.clear()
+        if hasattr(self, '_last_spoiler_hash'):
+             del self._last_spoiler_hash
+             
+        # Emit all signals to clear UI
+        self.reset_occurred.emit()
+        self.inventory_changed.emit({})
+        # Trigger location updates to "reset" color (not strictly necessary but good for consistency)
+        for loc in list(self._locations.keys()):
+             self.location_changed.emit(loc, "not_accessible") 
+
+        self.refresh_logic()
+        logging.info("StateManager: Global state reset performed.")
+
+    def request_rescan(self):
+        """Triggers the C# Helper to perform a fresh scan of memory/spoiler log."""
+        if hasattr(self, 'helper') and self.helper:
+            logging.info("StateManager: Triggering Helper RESCAN...")
+            self.helper.send_command("RESCAN")
+        else:
+            logging.warning("StateManager: Cannot request RESCAN - Helper not available.")
         
-        # Re-emit everything to sync UI
-        self.inventory_changed.emit(self._inventory)
-        for loc, state in self._locations.items():
-            self.location_changed.emit(loc, state)
-        # TODO: emit characters
-        
-        logging.info("Manual overrides reset.")
+        # Also force a logic refresh on current data immediately
+        self.refresh_logic()
+
+    def refresh_logic(self):
+        """Recalculates accessibility for all locations based on current state."""
+        if not self.logic_engine:
+            return
+            
+        accessibility = self.logic_engine.calculate_accessibility(self.inventory)
+        for loc, is_accessible in accessibility.items():
+            if loc in self._manual_location_overrides:
+                continue
+            
+            # Determine Color
+            is_cleared = self._locations.get(loc) == "cleared"
+            color = self.logic_engine.determine_color(loc, is_accessible, is_cleared)
+            
+            if self._locations.get(loc) != color:
+                self._locations[loc] = color
+                self.location_changed.emit(loc, color)
 
     # --- External Data Updates (Low Priority) ---
     
@@ -249,19 +295,23 @@ class StateManager(QObject):
                 break
         
         if prev_loc:
-             # Remove from old location, but keep obtained status (moving)
-             # Just emit unassign so map sprite is removed
+             # Remove from old location
              del self._character_locations[prev_loc]
+             if prev_loc in self._manual_character_locations:
+                  del self._manual_character_locations[prev_loc]
              self.character_unassigned.emit(prev_loc, character_name)
 
         # 2. Check if location already has someone (Overwrite)
         old_char = self._character_locations.get(location)
         if old_char and old_char != character_name:
-             # User says: "Previous character needs to be dimmed" (Reset)
              self.set_character_obtained(old_char, False)
              self.character_unassigned.emit(location, old_char)
+             # Clean up manual tracking for kicked character
+             if location in self._manual_character_locations:
+                  del self._manual_character_locations[location]
              
         # 3. Assign
+        self._manual_character_locations[location] = character_name
         self._character_locations[location] = character_name
         self.set_character_obtained(character_name, True)
         
@@ -271,15 +321,21 @@ class StateManager(QObject):
         # Emit signal for MapWidget
         self.character_assigned.emit(location, character_name)
         
+        # Ensure it's not in the manual removals set if re-assigned
+        if character_name in self._manual_sprite_removals:
+            self._manual_sprite_removals.remove(character_name)
+        
     def remove_character_assignment(self, location: str):
         char = self._character_locations.pop(location, None)
+        self._manual_character_locations.pop(location, None) # Also clear from manual
         if char:
             # Logic Parity v1.3: "Removes from inactive but obtained roster"
             # Since inactive roster = obtained=True but not in Active Party,
             # we set obtained=False.
+            self._manual_sprite_removals.add(char)
             self.set_character_obtained(char, False)
             self.character_unassigned.emit(location, char)
-            logging.debug(f"StateManager: Removed {char} from {location} and set to Not Obtained.")
+            logging.info(f"StateManager: Removed {char} from {location} and set to Not Obtained.")
 
     def register_shop_item(self, location, item_name):
         # Check duplicate
@@ -320,126 +376,133 @@ class StateManager(QObject):
         Slot for auto_update_received signal. 
         Process data received from external tracker.
         """
-        logging.debug(f"Auto-Update Payload Keys: {list(payload.keys())}")
-        
-        # 0. Empty Payload Check (Emulator Unhook / Reset)
-        # GameState in C# instantiates empty lists.
-        if not payload.get("inventory") and not payload.get("characters") and payload.get("player_x", 0) == 0 and payload.get("player_y", 0) == 0:
-             logging.debug("StateManager: Empty payload received. Triggering state reset.")
-             self.reset_state()
-             return
+        if "error" in payload:
+            logging.error(f"Helper status: {payload['error']}")
+            return
+
+        # Check for Seed Change (Spoiler Log Hash)
+        spoiler_log = payload.get("spoiler_log")
+        if spoiler_log:
+            import hashlib
+            log_str = json.dumps(spoiler_log, sort_keys=True)
+            log_hash = hashlib.md5(log_str.encode()).hexdigest()
+            
+            if not hasattr(self, '_last_spoiler_hash'):
+                self._last_spoiler_hash = log_hash
+            elif self._last_spoiler_hash != log_hash:
+                logging.info("StateManager: Spoiler Log Hash Changed! Resetting character locations.")
+                self._last_spoiler_hash = log_hash
+                # Clear all manual overrides to prevent sticky data on new seed
+                self._character_locations.clear()
+                self._manual_sprite_removals.clear()
+                self._manual_character_locations.clear()
+                self._manual_inventory_overrides.clear()
+                self._manual_location_overrides.clear()
+                self.reset_occurred.emit()
+                self.inventory_changed.emit({})
+                self.refresh_logic()
         
         # 0. Store Capsule Mapping (if present)
         if "capsule_sprite_values" in payload:
             self.update_capsule_sprites(payload["capsule_sprite_values"])
         
         # 1. Inventory & Scenario (Keys)
+        inventory_updated = False
         if self._is_tracking_enabled('tools') and "inventory" in payload and payload["inventory"] is not None:
             new_inventory = {}
-            
-            # Tools
             for item in payload.get('inventory') or []:
                  new_inventory[item] = True
-            
-            # Keys (Scenario Items)
             if payload.get("scenario"):
                 for item in payload.get('scenario') or []:
                     new_inventory[item] = True
-            
-            # Update Inventory (Authoritative)
             self._inventory = new_inventory
+            inventory_updated = True
             
-            # Emit Inventory Change
-            self.inventory_changed.emit(self.get_inventory())
-            
-        # 1.b. Maidens & Characters (Spoiler Log Check)
-        if self._is_tracking_enabled('tools') and payload.get("spoiler_log"):
+        # 1.b. Spoiler Log Check (Items/Maidens)
+        # Consolidate: Spoiler log can contain Tools OR Maidens
+        has_spoiler = payload.get("spoiler_log") is not None and len(payload.get("spoiler_log")) > 0
+        logging.debug(f"StateManager: payload has spoiler_log: {has_spoiler}, tools_enabled: {self._is_tracking_enabled('tools')}, maidens_enabled: {self._is_tracking_enabled('maidens')}")
+        
+        if (self._is_tracking_enabled('tools') or self._is_tracking_enabled('maidens')) and has_spoiler:
              new_args = (
                   payload['spoiler_log'],
                   payload.get('cleared_locations') or [],
                   payload.get('capsules') or []
              )
-             
-             # Only re-process if the inputs have actually changed OR if sprites just changed
-             # update_capsule_sprites might trigger it, but if this is a fresh sync, we need explicit run here
-             if not hasattr(self, '_last_spoiler_args') or self._last_spoiler_args != new_args:
-                 logging.debug("StateManager: Re-processing spoiler log due to payload change.")
-                 self.process_spoiler_log(*new_args)
+             logging.debug("StateManager: Re-processing spoiler log.")
+             self.process_spoiler_log(*new_args)
+             inventory_updated = True # Maidens modify inventory
+
+        if inventory_updated:
+            self.inventory_changed.emit(self.get_inventory())
+
 
         # 2. Characters & Capsules
         if self._is_tracking_enabled('chars') and "characters" in payload and payload["characters"] is not None:
-            active_list = payload.get('characters') or [] # Humans (Party)
-            capsule_list = payload.get('capsules') or [] # Capsules (Obtained)
+            active_list = payload.get('characters') or []
+            capsule_list = payload.get('capsules') or []
+            self._active_party_list = active_list
+            self._active_party = set(active_list)
+            self._obtained_capsules = set(capsule_list)
             
-            # v1.3 Logic Decoupled:
-            self._active_party_list = active_list # Store ordered list
-            self._active_party = set(active_list)      # Only Humans in Party
-            self._obtained_capsules = set(capsule_list) # Only Obtained Capsules
-            
-            # Mark active humans as obtained
-            for name in active_list:
-                self.set_character_obtained(name, True)
+            # Reset obtained status for everyone first, then set based on party/locations
+            new_obtained = {}
+            for name in self._characters.keys():
+                new_obtained[name] = False
                 
-            # Mark obtained capsules as obtained
+            # 1. Active Party members are always Obtained (and Lit)
+            for name in active_list:
+                new_obtained[name] = True
             for name in capsule_list:
-                self.set_character_obtained(name, True)
-
-            # Un-obtain characters that are not in the current payload
-            # This fixes the issue where characters stick around after a reset or loading an earlier save.
-            assigned_chars = set(self._character_locations.values())
-            for name in list(self._characters.keys()):
-                 # A character should remain "obtained" iff:
-                 # 1. They are in the active party (humans)
-                 # 2. They are in the obtained capsules list
-                 # 3. They are pinned to a location manually (in _character_locations)
-                 # 4. They are manually forced obtained via UI (_manual_character_overrides)
-                 is_forced = self._manual_character_overrides.get(name, False)
-                 
-                 if name not in self._active_party and name not in self._obtained_capsules and name not in assigned_chars and not is_forced:
-                      if self._characters[name]: # if currently obtained
-                           self.set_character_obtained(name, False)
-                           logging.debug(f"StateManager: Character {name} not found in payload and not pinned. Set obtained=False.")
-
-            # Emit changes (force update on widget to refresh Dim/Lit states)
-            for name, obtained in self._characters.items():
-                self.character_changed.emit(name, obtained)
+                new_obtained[name] = True
+                
+            # 2. Characters assigned to locations (unless manually removed) are Obtained (Dimmed)
+            for char_name in self._character_locations.values():
+                if char_name not in self._manual_sprite_removals:
+                     new_obtained[char_name] = True
+            
+            # Apply and Emit
+            for name, is_obtained in new_obtained.items():
+                if self._characters.get(name) != is_obtained:
+                    self.set_character_obtained(name, is_obtained)
+                    
+            # Force refresh MapWidget if needed? 
+            # character_assigned/unassigned already handle individual sprites.
+            # But dimming is handled by CharactersWidget.refresh_state.
+            # refresh_state is called via character_changed signal.
 
         # 3. Locations (Cleared)
         if self._is_tracking_enabled('tools') and "cleared_locations" in payload and payload["cleared_locations"] is not None:
              payload_cleared = set(payload['cleared_locations'])
-             
-             # Apply new cleared
              for loc in payload_cleared:
                 if loc not in self._manual_location_overrides:
                     if self._locations.get(loc) != "cleared":
                         self._locations[loc] = "cleared"
                         self.location_changed.emit(loc, "cleared")
-                        
-             # Un-clear locations (Reset Logic)
-             # If we have a stored "cleared" state that is NOT in payload, and NOT manual, revert it.
-             # We revert by deleting it from _locations (letting LogicEngine determine state)
              to_remove = []
              for loc, state in self._locations.items():
                  if state == "cleared" and loc not in self._manual_location_overrides:
                      if loc not in payload_cleared:
                          to_remove.append(loc)
-             
              for loc in to_remove:
                  del self._locations[loc]
-                 # We trigger location_changed with "reset" to prompt re-eval?
-                 # Or just "unknown"?
-                 # Actually, logic engine runs on inventory change.
-                 # We should probably emit "reset" or let the next logic pass handle it.
-                 # Logic Engine is triggered by `MainWindow._refresh_all` usually.
-                 # `inventory_changed` triggers it.
-                 # We just removed the "cleared" override.
-                 
-        # 4. Player Position
+
+        # 4. Maidens (Read directly from Payload if C# Helper sends them)
+        if self._is_tracking_enabled('maidens') and "maidens" in payload and payload["maidens"] is not None:
+             for loc_name, is_found in payload['maidens'].items():
+                  self._inventory[loc_name] = is_found
+             self.inventory_changed.emit(self.get_inventory())
+
+
+        # 5. Player Position
         if self._is_tracking_enabled('pos') and 'player_x' in payload and 'player_y' in payload:
              new_game_x = payload['player_x']
              new_game_y = payload['player_y']
              self._update_player_position(new_game_x, new_game_y)
              self.player_position_changed.emit(self._player_pos.x(), self._player_pos.y())
+
+
+
 
     def _get_capsule_base_name(self, reward_hex_val: str) -> Optional[str]:
         """Maps a Reward Hex (e.g. A502) to the Base Name of the slot (e.g. Jelze)."""
@@ -461,62 +524,6 @@ class StateManager(QObject):
             pass
         return None
 
-    def reset_state(self):
-        """Reset all tracker state to defaults (but keep options)."""
-        logging.info("Resetting tracker state to defaults.")
-        
-        # Unassign all map sprites explicitly
-        for loc, char in list(self._character_locations.items()):
-            self.character_unassigned.emit(loc, char)
-            
-        old_locations = list(self._locations.keys())
-            
-        self._inventory = {}
-        self._characters = {}
-        self._active_party = set()
-        self._obtained_capsules = set()
-        self._character_locations = {}
-        self._locations = {}
-        
-        self.reset_overrides()
-        
-        # Broadcast cleared locations as unknown
-        for loc in old_locations:
-             self.location_changed.emit(loc, "unknown")
-        
-        # Characters UI wipe
-        for name in ["Maxim", "Selan", "Guy", "Artea", "Tia", "Dekar", "Lexis", "Jelze", "Flash", "Gusto", "Zeppy", "Darbi", "Sully", "Blaze"]:
-            self.character_changed.emit(name, False)
-        
-        # Clear Data Caches so Sync doesn't ignore fresh payloads
-        if hasattr(self, '_last_spoiler_args'):
-            self._last_spoiler_args = None
-        if hasattr(self, '_capsule_sprite_mapping'):
-            self._capsule_sprite_mapping = None
-        if hasattr(self, 'capsule_sprites'):
-            self.capsule_sprites = None
-            
-        self.reset_occurred.emit()
-            
-    def force_sync(self):
-        """Used by the Sync button to flush caches and demand a clean payload."""
-        if hasattr(self, '_last_spoiler_args'):
-            self._last_spoiler_args = None
-        if hasattr(self, '_capsule_sprite_mapping'):
-            self._capsule_sprite_mapping = None
-        if self.helper and self.helper.running:
-            self.helper.request_sync()
-        self._character_locations = {}
-        
-        # Locations reset
-        self._locations = {}
-        self.location_changed.emit("Reset", "reset") 
-        
-        # Emit all signals to clear UI
-        self.inventory_changed.emit({})
-        self.clear_shop_items()
-        
-        self.hints_text = ""
         # hints UI cleared by MainWindow._on_reset_occurred
         
         # Characters:
@@ -547,13 +554,12 @@ class StateManager(QObject):
         # Cache for re-processing when C# data arrives
         self._last_spoiler_args = (spoiler_log, cleared_lines, obtained_capsules)
         
+        old_assignments = self._character_locations.copy()
+        
+        # Start with manual assignments, then overlay spoiler detections
+        self._character_locations = self._manual_character_locations.copy()
+        
         cleared_set = set(cleared_lines)
-        
-        # Merge manual overrides so spoiler log correctly places sprites on manually-cleared dots
-        for override_loc, override_state in self._manual_location_overrides.items():
-            if override_state == "cleared":
-                cleared_set.add(override_loc)
-        
         obtained_capsules_set = set(obtained_capsules)
         
         maiden_map = {"Clare": "Claire", "Lisa": "Lisa", "Marie": "Marie"}
@@ -621,27 +627,53 @@ class StateManager(QObject):
             # v1.3 Logic Implementation:
             
             if is_maiden:
+                logging.debug(f"StateManager: Found Maiden {entity_name} in spoiler log at {loc}. Cleared status: {loc in cleared_set}")
                 if loc in cleared_set:
                     self._inventory[entity_name] = True
                     # Maidens don't go on specific map location in v1.3? 
                     # They are just "Obtained".
                     # But we can show "Found At" text if we want.
                     self.register_spoiler_location(loc, entity_name) 
+            
+            elif is_char or is_capsule:
+                # Handle manually removed sprites override
+                if entity_name in self._manual_sprite_removals:
+                    logging.debug(f"StateManager: {entity_name} found in spoiler at {loc}, but manually removed from map. Skipping.")
+                    continue
+    
+                # Duplicate Prevention: Check if entity is already assigned
+                already_assigned_loc = next((l for l, c in self._character_locations.items() if c == entity_name), None)
+                if already_assigned_loc and already_assigned_loc != loc:
+                    logging.debug(f"StateManager: {entity_name} already at {already_assigned_loc}. Skipping duplicate at {loc}.")
+                    continue
+    
+                if is_char:
+                    if loc in cleared_set:
+                        # v1.3 behavior: characters at cleared locations are obtained and assigned
+                        self._character_locations[loc] = entity_name
+                        self.set_character_obtained(entity_name, True)
+                
+                elif is_capsule:
+                    # Capsules: Only on Map if Capsule is Obtained (reported by memory)
+                    if entity_name in obtained_capsules_set:
+                         self._character_locations[loc] = entity_name
+                         self.set_character_obtained(entity_name, True)
+                         self.register_spoiler_location(loc, entity_name)
 
-            elif is_char:
-                # Humans: Only on Map if Location is Cleared
-                if loc in cleared_set:
-                    self.set_character_obtained(entity_name, True)
-                    self.register_spoiler_location(loc, entity_name)
-                    
-            elif is_capsule:
-                # Capsules: Only on Map if Capsule is Obtained (Value != 0)
-                # Note: v1.3 checks if *that specific capsule slot* is valid.
-                # Here we check if `entity_name` (Base Name) is in obtained_capsules list.
-                if entity_name in obtained_capsules_set:
-                     self.set_character_obtained(entity_name, True)
-                     self.register_spoiler_location(loc, entity_name)
+        # UI Sync: Unassign characters that disappeared from their locations
+        for loc, char in old_assignments.items():
+            if loc not in self._character_locations:
+                self.character_unassigned.emit(loc, char)
+            elif self._character_locations[loc] != char:
+                # Character changed at this location (unlikely with same loc name, but safe)
+                self.character_unassigned.emit(loc, char)
+                self.character_assigned.emit(loc, self._character_locations[loc])
         
+        # Assign new ones that weren't there before
+        for loc, char in self._character_locations.items():
+            if loc not in old_assignments:
+                self.character_assigned.emit(loc, char)
+
         # Note: inventory_changed emitted by caller
 
     def save_state(self, filepath: str):

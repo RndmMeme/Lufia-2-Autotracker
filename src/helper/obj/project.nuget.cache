@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "XsZ3K46xAx0=",
+  "dgSpecHash": "LglFF1GwppQ=",
   "success": true,
-  "projectFilePath": "D:\\Projects\\Python\\lufia2_tracker_v1.4\\src\\helper\\Lufia2AutoTracker.Helper.csproj",
+  "projectFilePath": "D:\\Projects\\Python\\lufia2-autotracker-v1.4.3\\src\\helper\\Lufia2AutoTracker.Helper.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\admin\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.23\\microsoft.net.illink.tasks.8.0.23.nupkg.sha512",
     "C:\\Users\\admin\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.23\\microsoft.netcore.app.runtime.win-x64.8.0.23.nupkg.sha512",

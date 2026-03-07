@@ -1,10 +1,10 @@
-# Lufia 2 Auto Tracker v1.4
+# Lufia 2 Auto Tracker v1.4.5
 
 A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (SNES), fully refactored in **Python (PyQt6)**.
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
 
-## ✨ New in v1.4.4
+## ✨ New in v1.4.5
 
 *   **Scalable Windows**: Converted Maidens and Characters panels to QGraphicsView, allowing contents to scale gracefully when their Dock borders are resized.
 *   **Icon Sizing**: Added dedicated (+/-) scaling buttons for picture sizes across all icon-based widgets, including Characters, Maidens, Tools, and Keys.
@@ -12,15 +12,11 @@ A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (
 *   **Location Text Toggle**: You can now toggle the text labels identifying where characters are found on/off inside the Custom menu.
 *   **City Search Bar**: Formatted the Item Search dropdown as an editable Auto-Complete typing field.
 *   **Quality of Life**: Transferred Auto Tracking checkboxes out of the main ribbon into a clean Tracker Dropdown. Purged unreachable map designations from searches.
-*   **Robust Sync Flushing**: Fixed the ghost character location strings and map override persistence bugs so the UI properly wipes during a Game Reset or Manual Clear.
-
-## 🔮 Planned for v1.4.5
-
-*   **Expanded Tracking**: Adding consumable items to the item search database.
-*   **Key Items**: Implementation of a Dragon Egg Counter.
-*   **Optimization**: Memory State Caching to reduce repetitive data transfer.
-*   **Dynamic UI**: Dynamic Sprite Window Support (flowing grids for characters).
-*   **Tooltips**: Item Requirement Tooltips for inaccessible map locations.
+*   **Bug Fixes & Performance**: 
+    *   **Positional Overhead**: Map coordinate tracking has been heavily trimmed to only update when a move occurs without parsing the entire game inventory every frame. 
+    *   **Duplicate Sprites**: Prevented auto-tracking from duplicating the same character model across multiple map locations.
+    *   **Stability**: Fixed a WRAM pointer truncation math bug in the scanner, implemented port unlocking for rapid app restarts, and prevented UI freezes when the scanner crashes randomly.
+    *   **Floating Windows**: Undocked floating windows properly close when terminating the main window.
 
 ## ✨ New in v1.4.3
 

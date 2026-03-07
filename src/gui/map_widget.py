@@ -190,6 +190,14 @@ class MapWidget(QGraphicsView):
         
         # User requested restoration of static marker behavior (no blinking).
         self._player_visible = True
+        
+        # New: Track visibility filters for persistence
+        self._visibility_settings = {
+            'all': True,
+            'chars': True,
+            'capsules': True,
+            'maidens': True
+        }
 
     def reset(self):
         """Clears all character sprites and resets player position."""
@@ -461,6 +469,10 @@ class MapWidget(QGraphicsView):
         if not hasattr(self, '_char_items'):
             self._char_items = {} # loc -> item
         self._char_items[location] = item
+        item.char_name = char_name # Store for filtering
+        
+        # Apply current filter
+        self._apply_visibility_to_item(item)
         
         # Mark Location as Cleared visually (override)
         # Note: StateManager handles the "Logic" state update which emits location_changed,
@@ -478,71 +490,37 @@ class MapWidget(QGraphicsView):
         """
         category: 'all', 'chars', 'capsules', 'maidens'
         """
-        maidens = {"Claire", "Lisa", "Marie"}
-        capsules = {"Jelze", "Flash", "Gusto", "Zeppy", "Darbi", "Sully", "Blaze"}
+        self._visibility_settings[category] = visible
         
         if not hasattr(self, '_char_items'): return
         
         for item in self._char_items.values():
-             char_name = getattr(item, 'char_name', '')
-             
-             is_target = False
-             if category == 'all': is_target = True
-             elif category == 'maidens' and char_name in maidens: is_target = True
-             elif category == 'capsules' and char_name in capsules: is_target = True
-             elif category == 'chars' and char_name not in maidens and char_name not in capsules: is_target = True
-             
-             if is_target:
-                 item.setVisible(visible)
+             self._apply_visibility_to_item(item)
 
+    def _apply_visibility_to_item(self, item):
+        """Applies current visibility settings to a single sprite item."""
+        char_name = getattr(item, 'char_name', '')
+        if not char_name: return
 
-    # ... (event methods) ...
-
-    def add_character_sprite(self, location, char_name, pixmap_path):
-        """Adds a draggable character sprite to the map."""
-        if location not in self._dots:
-            logging.warning(f"Map: Location {location} not found for char assignment.")
+        maidens = {"Claire", "Lisa", "Marie"}
+        capsules = {"Jelze", "Flash", "Gusto", "Zeppy", "Darbi", "Sully", "Blaze"}
+        
+        # Global 'all' master switch
+        if not self._visibility_settings.get('all', True):
+            item.setVisible(False)
             return
- 
-        # Remove existing if any
-        self.remove_character_sprite(location)
- 
-        # Create Pixmap Item
-        pix = QPixmap(pixmap_path)
-        # Scale to 32x32
-        pixel_size = 32
-        pix = pix.scaled(pixel_size, pixel_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        
-        # Use InteractiveSprite with Remove Callback
-        item = InteractiveSprite(pix, remove_callback=lambda: self.sprite_removed.emit(location))
-        item.char_name = char_name # Store text for filtering
-        
-        # Position slightly offset from dot
-        dot = self._dots[location]
-        dot_x = dot.x()
-        dot_y = dot.y()
-        item.setPos(dot_x + 10, dot_y - 10)
-        
-        # Tooltip
-        item.setToolTip(f"{char_name} at {location}")
-        
-        self._scene.addItem(item)
-        
-        # Store
-        if not hasattr(self, '_char_items'):
-            self._char_items = {} # loc -> item
-            self._char_items_map = {} # Unique ID/Ref -> Item? No just iterate values.
+
+        # Category check
+        visible = True
+        if char_name in maidens:
+            visible = self._visibility_settings.get('maidens', True)
+        elif char_name in capsules:
+            visible = self._visibility_settings.get('capsules', True)
+        else:
+            visible = self._visibility_settings.get('chars', True)
             
-        self._char_items[location] = item
-        
-        # We need to iterate items for visibility toggle.
-        if not hasattr(self, '_char_items_map'):
-             self._char_items_map = {} # item -> char_name ??
-             # Actually I attached char_name to item. So I can just iterate _char_items.values()
-             pass
-        self._char_items_map[char_name] = item # Only one sprite per char? Usually yes.
-        # But wait, logic is loc -> item.
-        # We use _char_items.values() in toggle.
-        
-        # Mark Location as Cleared visually (override)
+        item.setVisible(visible)
+
+
+
 

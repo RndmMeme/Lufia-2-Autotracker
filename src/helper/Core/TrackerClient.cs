@@ -34,7 +34,36 @@ namespace Lufia2AutoTracker.Helper.Core
             }
         }
 
-        public event Action SyncRequested;
+        public event Action<string> CommandReceived;
+
+        public void StartListening()
+        {
+             Thread t = new Thread(ListenLoop);
+             t.IsBackground = true;
+             t.Start();
+        }
+
+        private void ListenLoop()
+        {
+            byte[] buffer = new byte[1024];
+            while (true)
+            {
+                if (IsConnected)
+                {
+                    try
+                    {
+                        int bytesRead = _stream.Read(buffer, 0, buffer.Length);
+                        if (bytesRead > 0)
+                        {
+                            string cmd = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                            CommandReceived?.Invoke(cmd);
+                        }
+                    }
+                    catch { /* Connection reset handled by sender */ }
+                }
+                Thread.Sleep(500);
+            }
+        }
 
         public void SendState(GameState state)
         {
@@ -56,38 +85,6 @@ namespace Lufia2AutoTracker.Helper.Core
                 _client?.Close();
                 _client = null;
             }
-        }
-
-        public void StartListening()
-        {
-            ThreadPool.QueueUserWorkItem(_ =>
-            {
-                byte[] buffer = new byte[1024];
-                while (true)
-                {
-                    if (IsConnected && _stream != null && _stream.DataAvailable)
-                    {
-                        try
-                        {
-                            int bytesRead = _stream.Read(buffer, 0, buffer.Length);
-                            if (bytesRead > 0)
-                            {
-                                string data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                                if (data.Contains("SYNC"))
-                                {
-                                    Console.WriteLine("TrackerClient: SYNC command received from UI.");
-                                    SyncRequested?.Invoke();
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error reading from stream: {ex.Message}");
-                        }
-                    }
-                    Thread.Sleep(100);
-                }
-            });
         }
     }
 }

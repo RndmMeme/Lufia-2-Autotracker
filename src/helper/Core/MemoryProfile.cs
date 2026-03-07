@@ -11,6 +11,7 @@ namespace Lufia2AutoTracker.Helper.Core
         public int Gold { get; set; }
         public int MapAddress { get; set; }
         public int PointerBaseAddress { get; set; }
+        public System.IntPtr ScannedWramBase { get; set; }
         public System.IntPtr ScannedRomBase { get; set; }
 
         // Ranges
@@ -139,7 +140,7 @@ namespace Lufia2AutoTracker.Helper.Core
                 CapsuleSpriteOffset = 0 // Needs ROM base
             };
         }
-        public static MemoryProfile CreateFromOffsets(int wramOffset, System.IntPtr scanRomBase, bool isNwa = false)
+        public static MemoryProfile CreateFromOffsets(System.IntPtr wramBase, System.IntPtr scanRomBase, bool isNwa = false)
         {
             // Standard Offsets (defaults for x64)
             int Wram_Gold = 0x2D9E;
@@ -155,7 +156,6 @@ namespace Lufia2AutoTracker.Helper.Core
             // NWA Specific Adjustments
             // In NWA, the distance between Gold and DungeonFlags is 0x302.
             // In x64, the distance is 0x308.
-            // Since wramOffset is derived from x64 Gold logic, we must adjust the Flags offset to match NWA.
             if (isNwa)
             {
                 Wram_Flags = 0x2A9C; // 0x2A96 + 6
@@ -169,38 +169,39 @@ namespace Lufia2AutoTracker.Helper.Core
                 ProcessName = "Scanned",
                 
                 PointerBaseAddress = 0, 
+                ScannedWramBase = wramBase,
                 ScannedRomBase = scanRomBase,
                 
-                Gold = wramOffset + Wram_Gold,
-                CharacterSlots = new[] { wramOffset + Wram_Party, wramOffset + Wram_Party + 1, wramOffset + Wram_Party + 2, wramOffset + Wram_Party + 3 },
+                Gold = Wram_Gold,
+                CharacterSlots = new[] { Wram_Party, Wram_Party + 1, Wram_Party + 2, Wram_Party + 3 },
                 
-                CapsuleSlotsStart = wramOffset + Wram_Caps,
-                CapsuleSlotsEnd = wramOffset + Wram_Caps + 6,
+                CapsuleSlotsStart = Wram_Caps,
+                CapsuleSlotsEnd = Wram_Caps + 6,
                 
-                InventoryStart = wramOffset + Wram_Inv,
-                InventoryEnd = wramOffset + Wram_Inv + 0xBF, 
+                InventoryStart = Wram_Inv,
+                InventoryEnd = Wram_Inv + 0xBF, 
                 
-                ScenarioStart = wramOffset + Wram_Scen,
-                ScenarioEnd = wramOffset + Wram_Scen + 2,
+                ScenarioStart = Wram_Scen,
+                ScenarioEnd = Wram_Scen + 2,
 
-                DungeonFlagStart = wramOffset + Wram_Flags,
-                DungeonFlagEnd = wramOffset + Wram_Flags + 9, 
+                DungeonFlagStart = Wram_Flags,
+                DungeonFlagEnd = Wram_Flags + 9, 
 
-                TransportFlag = wramOffset + Wram_Trans,
+                TransportFlag = Wram_Trans,
                 
                 // Map
-                MapAddress = wramOffset + Wram_Map,
+                MapAddress = Wram_Map,
 
                 // Position (Approx offsets from x64 profile)
-                ShipXFast = wramOffset + 0x379C,
-                ShipXSlow = wramOffset + 0x379D,
-                ShipYFast = wramOffset + 0x379F,
-                ShipYSlow = wramOffset + 0x37A0,
+                ShipXFast = 0x379C,
+                ShipXSlow = 0x379D,
+                ShipYFast = 0x379F,
+                ShipYSlow = 0x37A0,
                 
-                WalkXFast = wramOffset + 0x377F,
-                WalkXSlow = wramOffset + 0x3780,
-                WalkYFast = wramOffset + 0x3782,
-                WalkYSlow = wramOffset + 0x3783,
+                WalkXFast = 0x377F,
+                WalkXSlow = 0x3780,
+                WalkYFast = 0x3782,
+                WalkYSlow = 0x3783,
                 
                 // ROM Related
                 CapsuleSpriteOffset = Rom_CapsuleSprite, 

@@ -72,24 +72,21 @@ v1.4.3 Update - Emulator Compatibility
     *   Fixed issue where "Cleared Dungeons" were not detected on NWA versions.
     *   Improved config file loading reliability.
 
-v1.4.4 Update - Bug Fixes & UI Refinements
+v1.4.5 Update - UI Refinements & Fixes
 ------------------------------------------
-*   **Core Systems**:
-    *   Fixed `state_manager.py` ghost memory leaks preventing Map Location texts and Sprites from fully flushing visually upon Game Reset.
-    *   Fixed Positional tracking freezes by caching spoiler logs.
 *   **Quality of Life**:
     *   **Scalable Windows**: Converted Maidens and Characters panels to QGraphicsView, allowing contents to scale gracefully when their Dock borders are resized.
     *   **Icon Sizing**: Added dedicated (+/-) scaling buttons for picture sizes across all icon-based widgets, including Characters, Maidens, Tools, and Keys.
-    *   **Recover Widgets**: Centralized accidentally closed docks into a custom 'Recover Widgets' menu options list.
+    *   **Recover Widgets**: Centralized accidentally closed docks into a custom 'Restore Closed Windows' menu options list.
+    *   **Floating Widgets**: Resolved a bug where undocked, floating panels failed to save and restore their screen positions upon restarting the tracker, and ensured they close fully when the main application shuts down.
     *   **Location Text Toggle**: You can now toggle the text labels identifying where characters are found on/off inside the Custom menu.
     *   **City Search Bar**: Formatted the Item Search city dropdown as an editable Auto-Complete typing field.
     *   **Auto Tracking Menu**: Transferred the Auto Checkboxes out of the top ribbon into a dedicated `Tracker` -> `Auto` sub-menu.
     *   **Cleaned Dropdowns**: Purged unreachable game locations (Gordovan, Agurio, Pico Woods) from Item Select tables.
-
-v1.4.5 Update - Planned Features
-------------------------------------------
-*   **Expanded Tracking**: Adding consumable items to the item search database.
-*   **Key Items**: Implementation of a Dragon Egg Counter.
-*   **Optimization**: Memory State Caching to reduce repetitive data transfer.
-*   **Dynamic UI**: Dynamic Sprite Window Support (flowing grids for characters).
-*   **Tooltips**: Item Requirement Tooltips for inaccessible map locations.
+*   **Performance Optimizations**:
+    *   **Positional Caching**: Heavily trimmed down Auto-Tracking positional update packets. The tracker now sends a minimal coordinate payload rather than re-computing the entire game inventory every frame a player moves, drastically reducing Python parsing overhead.
+*   **Auto-Tracking & Stability**:
+    *   **Duplicate Sprite Placements**: Resolved an issue where characters and capsules from auto-tracking could mistakenly duplicate across multiple map locations simultaneously.
+    *   **Memory Parsing Fix**: Fixed a critical 64-bit to 32-bit truncation issue in the C# Tracker Helper that caused memory offsets to fail or crash unexpectedly.
+    *   **Connection Resilience**: Upgraded tracking sockets to utilize explicit reuse flags (`SO_REUSEADDR`), ensuring rapid tracker restarts do not trigger Windows port blocked errors.
+    *   **UI Freeze Safety**: Guarded Python data streams with safe traceback loggers, preventing the main UI from permanently hanging "Scanning in process..." during an unexpected C# helper crash.
