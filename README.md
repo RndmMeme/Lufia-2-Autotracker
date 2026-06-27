@@ -1,8 +1,17 @@
-# Lufia 2 Auto Tracker v1.4.5
+# Lufia 2 Auto Tracker v1.4.6
 
 A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (SNES), fully refactored in **Python (PyQt6)**.
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
+
+## ✨ New in v1.4.6
+
+*   **Validated Emulator Discovery**: Process names are discovery hints; every candidate must pass Lufia II WRAM validation before the tracker attaches.
+*   **WRAM-Only Compatibility**: Inventory, party, dungeon, scenario, and position tracking no longer depend on locating a compatible ROM allocation.
+*   **Safer ROM Detection**: Optional ROM features are enabled only after the capsule sprite table is validated.
+*   **Automatic Recovery**: Repeated required-memory read failures detach the stale source and trigger a fresh scan.
+*   **Visible Status**: The UI reports searching, probing, attached, lost, and error states from the helper.
+*   **Reliable Configuration**: Emulator profiles and dungeon mappings resolve from the packaged data directory instead of the current working directory.
 
 ## ✨ New in v1.4.5
 
@@ -51,7 +60,7 @@ Ported from Tkinter to **PyQt6**, offering superior stability, smooth rendering,
 *   **Zoom & Pan**: Automatic scaling to fit the window.
 *   **Context Aware**: Right-click cities to search/add items; right-click dungeons to assign characters.
 *   **Player Tracking**: 
-    *   **Auto**: Automatically updates position via USB2SNES.
+    *   **Auto**: Automatically locates a supported emulator and updates position from its WRAM.
     *   **Manual**: Custom marker shapes (Triangle, Rhombus, Square, Sprite).
 
 ### ⚔️ Comprehensive Tracking
@@ -62,7 +71,10 @@ Ported from Tkinter to **PyQt6**, offering superior stability, smooth rendering,
 ### 🎮 Supported Emulators
 *   **Snes9x** (x64 and nwa versions supported)
 *   **bsnes**
-*   *Likely compatible with others, but verified on the above.*
+*   **Additional discovery candidates**: RetroArch, Mesen/Mesen-S, higan, ares, and BizHawk/EmuHawk.
+*   *Snes9x and bsnes are the verified baseline. Other candidates still require emulator/version-specific validation.*
+
+See [EMULATOR_COMPATIBILITY.md](EMULATOR_COMPATIBILITY.md) for the live verification matrix and reproducible test commands.
 
 ---
 
@@ -90,6 +102,22 @@ Or just use the .exe
     *   Enable in `Custom -> Edit Layout`.
     *   Drag items inside docks to rearrange them.
     *   Layouts are auto-saved to `layout_config.json`.
+
+## Development Verification
+
+Run the deterministic helper checks:
+
+```powershell
+dotnet run --project src/helper/Lufia2AutoTracker.Helper.csproj --configuration Debug -- --self-test --data-dir src/data
+```
+
+With an emulator and Lufia II running, verify live discovery and one state payload:
+
+```powershell
+python tools/verify_emulator.py
+```
+
+Use `python tools/verify_emulator.py --pid <PID>` to isolate one emulator when several are running.
 
 ## Credits
 *   **RndmMeme**: Original Creator & Logic.

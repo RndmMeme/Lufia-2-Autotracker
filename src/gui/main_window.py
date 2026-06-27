@@ -11,6 +11,7 @@ from .dock_title_bar import DockTitleBar
 from .inventory_widgets import ToolsWidget, ScenarioWidget
 from .menu_ribbon import MenuRibbon
 from utils.constants import STATE_ORDER
+from utils.version import APP_TITLE
 from .widgets.items_widget import ItemsWidget
 from .widgets.characters_widget import CharactersWidget
 from .widgets.maiden_widget import MaidenWidget
@@ -26,7 +27,7 @@ class MainWindow(QMainWindow):
         self.logic_engine = logic_engine
         self.layout_manager = LayoutManager()
         
-        self.setWindowTitle("Lufia 2 Auto Tracker v1.4.5")
+        self.setWindowTitle(APP_TITLE)
         from PyQt6.QtGui import QIcon
         self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
         self.resize(1024, 768)
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow):
         
         # Connect Listener Signals to UI Feedback
         self.state_manager.auto_update_received.connect(self._on_auto_update_received)
+        self.state_manager.tracker_status_changed.connect(self._on_tracker_status_changed)
 
         self._active_search_dialogs = {}
         self._is_closing = False
@@ -252,6 +254,13 @@ class MainWindow(QMainWindow):
         except Exception as e:
             import traceback
             logging.error(f"CRASH in UI Thread (_on_auto_update_received):\\n{traceback.format_exc()}")
+
+    def _on_tracker_status_changed(self, status):
+        """Display structured helper discovery and attachment status."""
+        self.menu_ribbon.set_tracker_status(
+            status.get("state", "scanning"),
+            status.get("message", "Scanning for emulator...")
+        )
 
     def _setup_docking_ui(self):
         # Allow nested docks

@@ -260,6 +260,18 @@ class MenuRibbon(QWidget):
             else:
                 self.checkbox_frame.hide()
 
+    def set_tracker_status(self, state: str, message: str):
+        if state == "attached":
+            self.lbl_auto.setText(message)
+            self.lbl_auto.setStyleSheet("color: lightgreen; font-weight: bold;")
+            self.set_scanning_status(False)
+            return
+
+        color = "#ff6b6b" if state in {"error", "lost"} else "yellow"
+        self.lbl_scanning.setText(message)
+        self.lbl_scanning.setStyleSheet(f"color: {color}; font-weight: bold;")
+        self.set_scanning_status(True)
+
     def _toggle_auto(self, checked=None):
         if checked is not None:
             self.auto_active = checked

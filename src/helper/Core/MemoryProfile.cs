@@ -4,8 +4,8 @@ namespace Lufia2AutoTracker.Helper.Core
 {
     public class MemoryProfile
     {
-        public string Name { get; set; }
-        public string ProcessName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ProcessName { get; set; } = string.Empty;
         
         // Base Offsets
         public int Gold { get; set; }
@@ -40,7 +40,7 @@ namespace Lufia2AutoTracker.Helper.Core
         public int SpoilerLogOffsetEnd { get; set; }
 
         // Slots
-        public int[] CharacterSlots { get; set; }
+        public int[] CharacterSlots { get; set; } = System.Array.Empty<int>();
         public int CapsuleSlotsStart { get; set; }
         public int CapsuleSlotsEnd { get; set; }
         public int CapsuleSpriteOffset { get; set; }
@@ -140,9 +140,10 @@ namespace Lufia2AutoTracker.Helper.Core
                 CapsuleSpriteOffset = 0 // Needs ROM base
             };
         }
-        public static MemoryProfile CreateFromOffsets(System.IntPtr wramBase, System.IntPtr scanRomBase, bool isNwa = false)
+        public static MemoryProfile CreateFromOffsets(System.IntPtr wramBase, System.IntPtr scanRomBase)
         {
-            // Standard Offsets (defaults for x64)
+            // Canonical offsets inside Lufia II's WRAM image. Emulator-specific
+            // allocation addresses are represented by ScannedWramBase instead.
             int Wram_Gold = 0x2D9E;
             int Wram_Party = 0x2D8F;
             int Wram_Inv = 0x2DA1;
@@ -150,22 +151,15 @@ namespace Lufia2AutoTracker.Helper.Core
             int Wram_Caps = 0x34CF;
             int Wram_Flags = 0x2A96;
             int Wram_Trans = 0x2CF5;
-            int Wram_ShipX = 0x379C; 
             int Wram_Map = 0x351E;
-            
-            // NWA Specific Adjustments
-            // In NWA, the distance between Gold and DungeonFlags is 0x302.
-            // In x64, the distance is 0x308.
-            if (isNwa)
-            {
-                Wram_Flags = 0x2A9C; // 0x2A96 + 6
-            }
             
             const int Rom_CapsuleSprite = 0xBDCB8;
             
             return new MemoryProfile
             {
-                Name = $"Scanned Profile ({(isNwa ? "NWA" : "x64")})",
+                Name = scanRomBase != System.IntPtr.Zero
+                    ? "Dynamic WRAM + ROM profile"
+                    : "Dynamic WRAM-only profile",
                 ProcessName = "Scanned",
                 
                 PointerBaseAddress = 0, 

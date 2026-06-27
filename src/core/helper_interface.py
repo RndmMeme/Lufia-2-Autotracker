@@ -9,18 +9,19 @@ import atexit
 from pathlib import Path
 
 # Constants
-# Point to Standard Debug Build (win-x64)
-HELPER_PATH = Path("src/helper/bin/Debug/net8.0/win-x64/Lufia2AutoTracker.Helper.exe")
+PACKAGED_HELPER_PATH = Path("src/helper/Lufia2AutoTracker.Helper.exe")
+DEVELOPMENT_HELPER_PATH = Path("src/helper/bin/Debug/net8.0/win-x64/Lufia2AutoTracker.Helper.exe")
 HOST = 'localhost'
 PORT = 65432
 
 class HelperInterface:
-    def __init__(self, callback):
+    def __init__(self, callback, helper_args=None):
         self.process = None
         self.server_socket = None
         self.client_socket = None
         self.running = False
         self.callback = callback # Function to call with parsed JSON data
+        self.helper_args = list(helper_args or [])
         self.thread = None
 
     def start(self):
@@ -99,15 +100,22 @@ class HelperInterface:
         else:
             base_path = Path.cwd()
 
-        abs_path = base_path / HELPER_PATH
+        packaged_path = base_path / PACKAGED_HELPER_PATH
+        development_path = base_path / DEVELOPMENT_HELPER_PATH
+        abs_path = packaged_path if packaged_path.exists() else development_path
         if not abs_path.exists():
             logging.error(f"Helper not found at {abs_path}")
+            self.running = False
+            if self.callback:
+                self.callback({"error": f"Tracker helper not found: {abs_path}"})
             return
+
+        data_dir = base_path / "src" / "data"
 
         try:
             # Popen with pipes to capture output
             self.process = subprocess.Popen(
-                [str(abs_path)], 
+                [str(abs_path), "--data-dir", str(data_dir), *self.helper_args],
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW,
@@ -125,6 +133,9 @@ class HelperInterface:
             
         except Exception as e:
             logging.error(f"Failed to launch helper: {e}")
+            self.running = False
+            if self.callback:
+                self.callback({"error": f"Failed to launch tracker helper: {e}"})
 
     def _read_output(self, stream, prefix):
         """Reads lines from a stream and logs them."""

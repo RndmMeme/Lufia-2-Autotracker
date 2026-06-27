@@ -20,3 +20,9 @@ layout_config.json
 # Build artifacts
 build/
 *.spec
+!Lufia2AutoTracker_v1.4.6.spec
+src/helper/obj/
+src/helper/bin/Release/net8.0/win-x64/*
+!src/helper/bin/Release/net8.0/win-x64/publish/
+src/helper/bin/Release/net8.0/win-x64/publish/*
+!src/helper/bin/Release/net8.0/win-x64/publish/Lufia2AutoTracker.Helper.exe

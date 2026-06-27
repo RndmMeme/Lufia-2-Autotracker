@@ -90,3 +90,21 @@ v1.4.5 Update - UI Refinements & Fixes
     *   **Memory Parsing Fix**: Fixed a critical 64-bit to 32-bit truncation issue in the C# Tracker Helper that caused memory offsets to fail or crash unexpectedly.
     *   **Connection Resilience**: Upgraded tracking sockets to utilize explicit reuse flags (`SO_REUSEADDR`), ensuring rapid tracker restarts do not trigger Windows port blocked errors.
     *   **UI Freeze Safety**: Guarded Python data streams with safe traceback loggers, preventing the main UI from permanently hanging "Scanning in process..." during an unexpected C# helper crash.
+
+v1.4.6 Update - Emulator Discovery & Recovery
+----------------------------------------------
+*   **Validated Discovery**:
+    *   Emulator process names are now hints rather than proof of compatibility.
+    *   Every candidate process must pass Lufia II WRAM structure checks before attachment.
+    *   Multiple emulator processes are probed instead of accepting the first matching executable.
+*   **Broader Compatibility**:
+    *   Core tracking can attach from a verified WRAM block without requiring a compatible ROM allocation.
+    *   ROM-dependent capsule sprite and spoiler-log features remain optional and are enabled only after validation.
+    *   Added discovery aliases for Mesen, ares, and BizHawk/EmuHawk while preserving Snes9x and bsnes behavior.
+*   **Reliability**:
+    *   Memory scans are chunked to avoid allocating entire large process regions at once.
+    *   Repeated required-memory read failures trigger automatic detachment and rescanning.
+    *   Emulator profile and dungeon configuration paths now resolve deterministically in source and packaged builds.
+    *   Added structured helper status messages for searching, probing, attachment, loss, and errors.
+*   **Verification**:
+    *   Added deterministic helper self-tests for WRAM validation, dynamic profiles, configuration loading, and dungeon mappings.

@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QPushButton, QLabel, QListWidget, QStackedWidget, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
+from utils.version import APP_VERSION
 
 class BaseInfoDialog(QDialog):
     def __init__(self, title, content, parent=None):
@@ -25,8 +26,8 @@ class BaseInfoDialog(QDialog):
 
 class AboutDialog(BaseInfoDialog):
     def __init__(self, parent=None):
-        content = """
-        <h3>Lufia 2 Auto Tracker v1.4.4</h3>
+        content = f"""
+        <h3>Lufia 2 Auto Tracker v{APP_VERSION}</h3>
         <p><b>My Discord:</b><br>Rndmmeme#5100</p>
         
         <p><b>Lufia 2 Community on Discord:</b><br>Ancient Cave</p>
@@ -51,7 +52,8 @@ class AboutDialog(BaseInfoDialog):
         
         <p><b>RndmMeme</b><br>
         Lufia 2 Auto Tracker v1.3 @2024-2025<br>
-        Ported to v1.4 (PyQt6) @2026</p>
+        Ported to v1.4 (PyQt6) @2026<br>
+        Current release v{APP_VERSION}</p>
         """
         super().__init__("About", content, parent)
 
@@ -94,27 +96,15 @@ class HelpDialog(QDialog):
         # --- Add Pages ---
         
         # 1. Introduction
-        self.add_page("Introduction", """
-            <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v1.4.4!</h3>
+        self.add_page("Introduction", f"""
+            <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v{APP_VERSION}!</h3>
             <p>This tracker helps you keep track of your randomizer run with advanced features like auto-tracking, map visualization, and inventory management.</p>
-            <p><b>New in v1.4.4:</b></p>
+            <p><b>New in v1.4.6:</b></p>
             <ul>
-                <li><b>Scalable Windows:</b> Maidens and Characters panels scale gracefully when their Dock borders are resized.</li>
-                <li><b>Icon Sizing Controls:</b> Dedicated (+/-) scaling buttons for all icon-based widgets, including Characters, Maidens, Tools, and Keys.</li>
-                <li><b>Recover Widgets:</b> Re-open accidentally closed docks via the Custom menu.</li>
-                <li><b>Location Text Toggle:</b> Toggle character discovery text labels on/off.</li>
-                <li><b>City Search Bar:</b> Formatted the Item Search dropdown as an editable Auto-Complete typing field.</li>
-                <li><b>Quality of Life:</b> Transferred Auto Tracking checkboxes into a clean Tracker Dropdown. Purged unreachable map designations.</li>
-                <li><b>Robust Sync Flushing:</b> Fixed ghost character location strings and map override persistence bugs.</li>
-            </ul>
-
-            <p><b>Planned for v1.4.5:</b></p>
-            <ul>
-                <li>Adding consumable items to item search</li>
-                <li>Dragon Egg Counter</li>
-                <li>Memory State Caching (reduce repetitive data transfer)</li>
-                <li>Dynamic Sprite Window Support</li>
-                <li>Item Requirement Tooltips for map locations</li>
+                <li><b>Safer Emulator Discovery:</b> Every candidate process is validated as a live Lufia II instance before attachment.</li>
+                <li><b>WRAM-Only Tracking:</b> Core tracking can run even when an emulator stores ROM data in an unsupported layout.</li>
+                <li><b>Recovery:</b> Invalid memory reads trigger a clean rescan instead of silently producing empty tracker data.</li>
+                <li><b>Status Feedback:</b> The tracker reports whether it is searching, probing, attached, or rescanning.</li>
             </ul>
         """)
         
@@ -144,9 +134,9 @@ class HelpDialog(QDialog):
             <h3>Tracking Controls</h3>
             <h4>Auto Tracker</h4>
             <ul>
-                <li><b>Auto Toggle:</b> Starts the background listener for game data (USB2SNES/QUsb2Snes).</li>
+                <li><b>Auto Toggle:</b> Starts the background helper that locates and reads the active emulator.</li>
                 <li><b>Sync Menu:</b> Perform a one-time snapshot of specific data (Inventory, Characters, etc.) without keeping the connection open.</li>
-                <li><b>Status:</b> The 'Auto' text turns Green when active.</li>
+                <li><b>Status:</b> The ribbon shows discovery progress and turns green after a validated attachment.</li>
             </ul>
             <h4>Important: Loading Saves</h4>
             <p><b>Please note:</b> When loading a new save state or switching saves, a manual <b>'Reset'</b> via the Options menu is currently required to fully wipe the character board before the next sync applies. After resetting the tracker, please press the manual <b>Sync</b> button, or deactivate and reactivate active tracking to fetch the latest location data.</p>
@@ -219,10 +209,9 @@ class HelpDialog(QDialog):
                 <li><b>Snes9x-nwa</b> (Split Memory Banks)</li>
                 <li><b>bsnes</b></li>
             </ul>
-            <p><b>Note:</b> We believe it should work with most other emulators that follow standard Snes9x/bsnes memory mapping.</p>
-            <p>However, there is always the possibility that a specific emulator version is an edge case (e.g., different memory base pointers or offsets).</p>
-            <p>If you encounter issues (e.g., "Auto" stays red or data doesn't update), please contact me via the means listed in the <b>About</b> dialog.</p>
-            <p>Please provide the exact **Emulator Name and Version** you are using.</p>
+            <p><b>How detection works:</b> Executable names are only hints. The tracker scans each candidate and validates Lufia II's WRAM structure before attaching.</p>
+            <p>Core inventory, character, dungeon, and position tracking can operate from WRAM alone. Capsule sprite metadata and spoiler-log features additionally require a verified ROM mapping.</p>
+            <p>If detection fails, please provide the exact <b>emulator name and version</b> plus the status text shown in the tracker ribbon.</p>
         """)
         
         # Select first

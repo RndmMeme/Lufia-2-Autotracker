@@ -6,15 +6,15 @@ namespace Lufia2AutoTracker.Helper.Core
     {
         public class ItemDef
         {
-            public string Name { get; set; }
-            public string Type { get; set; }
-            public string ObtainedValue { get; set; } // Hex string ("0x03A9") or Binary mask
+            public string Name { get; set; } = string.Empty;
+            public string Type { get; set; } = string.Empty;
+            public string ObtainedValue { get; set; } = string.Empty; // Hex string ("0x03A9") or Binary mask
         }
         
         public class DungeonDef
         {
-            public string Location { get; set; }
-            public string Flag { get; set; } // "0x80"
+            public string Location { get; set; } = string.Empty;
+            public string Flag { get; set; } = string.Empty; // "0x80"
             public int Address { get; set; } // Raw address from JSON keys?
             // Issue: JSON keys in dungeon_flags_*.json are ABSOLUTE addresses like "0xA32A96".
             // My MemoryProfile stores "DungeonFlagStart" = 0xA32A96.

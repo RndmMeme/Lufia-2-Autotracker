@@ -12,6 +12,9 @@ namespace Lufia2AutoTracker.Helper.Core
         private IntPtr _processHandle;
         private IntPtr _baseAddress;
         private MemoryProfile _profile;
+        private int _requiredReadFailures;
+
+        public bool LastRequiredReadSucceeded { get; private set; } = true;
 
         public DataReaders(IntPtr processHandle, IntPtr baseAddress, MemoryProfile profile)
         {
@@ -20,18 +23,20 @@ namespace Lufia2AutoTracker.Helper.Core
             _profile = profile;
         }
 
-        private byte[] ReadMemory(int offset, int size)
+        private byte[] ReadMemory(int offset, int size, bool required = true)
         {
             IntPtr baseAddr = _profile.ScannedWramBase != IntPtr.Zero ? _profile.ScannedWramBase : _baseAddress;
             IntPtr address = (IntPtr)((long)baseAddr + offset);
             byte[] buffer = new byte[size];
             IntPtr bytesRead;
-            if (NativeMethods.ReadProcessMemory(_processHandle, address, buffer, size, out bytesRead))
+            if (NativeMethods.ReadProcessMemory(_processHandle, address, buffer, size, out bytesRead) &&
+                bytesRead.ToInt64() == size)
             {
                 return buffer;
             }
             else
             {
+                if (required) _requiredReadFailures++;
                 int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
                 Console.WriteLine($"[DEBUG] ReadMemory FAILED at 0x{address.ToString("X")} (Size: {size}) - Win32 Error: {err}");
             }
@@ -40,10 +45,11 @@ namespace Lufia2AutoTracker.Helper.Core
         
         private byte ReadByte(int offset) => ReadMemory(offset, 1)[0];
         private ushort ReadUShort(int offset) => BitConverter.ToUInt16(ReadMemory(offset, 2), 0);
-        private uint ReadUInt(int offset) => BitConverter.ToUInt32(ReadMemory(offset, 4), 0);
+        private uint ReadUInt(int offset, bool required = true) => BitConverter.ToUInt32(ReadMemory(offset, 4, required), 0);
 
         public GameState ReadGameState()
         {
+            _requiredReadFailures = 0;
             var state = new GameState();
             try { state.Inventory = ReadInventory(); } catch {}
             try { state.ScenarioItems = ReadScenario(); } catch {}
@@ -56,6 +62,8 @@ namespace Lufia2AutoTracker.Helper.Core
             state.PlayerX = pos.X;
             state.PlayerY = pos.Y;
             state.TransportMode = pos.Mode;
+
+            LastRequiredReadSucceeded = _requiredReadFailures == 0;
 
             return state;
         }
@@ -195,11 +203,18 @@ namespace Lufia2AutoTracker.Helper.Core
                 // Use Scanned Absolute Address
                 baseOffset = (long)_profile.ScannedRomBase + _profile.CapsuleSpriteOffset;
             }
+            else if (_profile.ScannedWramBase != IntPtr.Zero)
+            {
+                // A dynamically discovered WRAM block is sufficient for core
+                // tracking. Without a verified ROM block, sprite metadata is
+                // intentionally unavailable rather than guessed.
+                return values;
+            }
             else
             {
                 // Fallback to Pointer Logic (Relative to Base)
                 // 1:1 logic: Add ROM Start + Offset (User request)
-                uint romStart = ReadUInt(_profile.PointerBaseAddress);
+                uint romStart = ReadUInt(_profile.PointerBaseAddress, required: false);
                 baseOffset = romStart + _profile.CapsuleSpriteOffset;
             }
 
@@ -300,7 +315,8 @@ namespace Lufia2AutoTracker.Helper.Core
                 }
                 else
                 {
-                    uint ptrVal = ReadUInt(_profile.PointerBaseAddress);
+                    if (_profile.PointerBaseAddress == 0) return logs;
+                    uint ptrVal = ReadUInt(_profile.PointerBaseAddress, required: false);
                     if (ptrVal == 0) return logs; // Pointer logic failed or disabled
 
                     start = ptrVal + _profile.SpoilerLogOffsetStart;

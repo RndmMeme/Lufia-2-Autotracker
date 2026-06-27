@@ -21,6 +21,7 @@ class StateManager(QObject):
     
     # Signal for external auto-updates (from network)
     auto_update_received = pyqtSignal(dict) # payload
+    tracker_status_changed = pyqtSignal(dict)
     reset_occurred = pyqtSignal() # New signal for global reset
     
     shop_items_changed = pyqtSignal(list) # List of {location, name} dictionaries
@@ -369,6 +370,10 @@ class StateManager(QObject):
 
     def on_helper_data(self, data: dict):
         """Callback from HelperInterface thread. Bridges to main thread via signals if needed."""
+        status = data.get("tracker_status")
+        if status:
+            self.tracker_status_changed.emit(status)
+            return
         self.auto_update_received.emit(data)
 
     def process_auto_update(self, payload: dict):

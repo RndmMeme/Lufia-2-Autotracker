@@ -10,8 +10,9 @@ namespace Lufia2AutoTracker.Helper.Core
     {
         private const string Host = "127.0.0.1";
         private const int Port = 65432;
-        private TcpClient _client;
-        private NetworkStream _stream;
+        private TcpClient? _client;
+        private NetworkStream? _stream;
+        private readonly object _sendLock = new object();
 
         public bool IsConnected => _client != null && _client.Connected;
 
@@ -34,7 +35,7 @@ namespace Lufia2AutoTracker.Helper.Core
             }
         }
 
-        public event Action<string> CommandReceived;
+        public event Action<string>? CommandReceived;
 
         public void StartListening()
         {
@@ -52,7 +53,7 @@ namespace Lufia2AutoTracker.Helper.Core
                 {
                     try
                     {
-                        int bytesRead = _stream.Read(buffer, 0, buffer.Length);
+                        int bytesRead = _stream!.Read(buffer, 0, buffer.Length);
                         if (bytesRead > 0)
                         {
                             string cmd = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
@@ -67,6 +68,23 @@ namespace Lufia2AutoTracker.Helper.Core
 
         public void SendState(GameState state)
         {
+            SendPayload(state);
+        }
+
+        public void SendStatus(string state, string message, string? processName = null, string? profileName = null)
+        {
+            SendPayload(new {
+                tracker_status = new {
+                    state,
+                    message,
+                    process = processName,
+                    profile = profileName
+                }
+            });
+        }
+
+        private void SendPayload(object payload)
+        {
             if (!IsConnected)
             {
                 Connect();
@@ -75,9 +93,12 @@ namespace Lufia2AutoTracker.Helper.Core
 
             try
             {
-                string json = JsonSerializer.Serialize(state) + "\n"; // Append newline for delimiting
+                string json = JsonSerializer.Serialize(payload) + "\n";
                 byte[] data = Encoding.UTF8.GetBytes(json);
-                _stream.Write(data, 0, data.Length);
+                lock (_sendLock)
+                {
+                    _stream!.Write(data, 0, data.Length);
+                }
             }
             catch (Exception ex)
             {
