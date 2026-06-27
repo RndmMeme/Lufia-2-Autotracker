@@ -7,6 +7,9 @@
     <Nullable>enable</Nullable>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyName>Lufia2AutoTracker.Helper</AssemblyName>
     <RootNamespace>Lufia2AutoTracker.Helper</RootNamespace>

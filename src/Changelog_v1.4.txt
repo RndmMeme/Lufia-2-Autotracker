@@ -99,7 +99,7 @@ v1.4.6 Update - Emulator Discovery & Recovery
     *   Multiple emulator processes are probed instead of accepting the first matching executable.
 *   **Broader Compatibility**:
     *   Core tracking can attach from a verified WRAM block without requiring a compatible ROM allocation.
-    *   ROM-dependent capsule sprite and spoiler-log features remain optional and are enabled only after validation.
+    *   ROM-dependent capsule sprite features remain optional and are enabled only after validation; spoiler-log discovery uses its own signature scan.
     *   Added discovery aliases for Mesen, ares, and BizHawk/EmuHawk while preserving Snes9x and bsnes behavior.
 *   **Reliability**:
     *   Memory scans are chunked to avoid allocating entire large process regions at once.
@@ -126,3 +126,14 @@ v1.4.7 Update - Canonical Memory Roots
     *   Added SNES bus-address conversion and root-resolution self-tests.
     *   Added `--root-hints-only` to the live verification harness.
     *   Re-verified standard Snes9x 1.62.3, Snes9x 1.62.3-nwa, and bsnes-plus v05 with real state payloads.
+
+v1.4.8 Update - Compressed Standalone Release
+---------------------------------------------
+*   **Smaller Helper**:
+    *   Enabled .NET trimming and single-file compression while retaining a self-contained Windows runtime.
+    *   Replaced reflection-based JSON with compile-time generated metadata so optimized builds preserve the wire protocol.
+*   **Lower Runtime Overhead**:
+    *   Replaced per-cycle JSON snapshot comparisons with direct collection and dictionary comparisons.
+*   **Verification**:
+    *   Added protocol self-tests for state and tracker-status JSON property names.
+    *   Run the same self-tests from both the trimmed helper and the final packaged executable.

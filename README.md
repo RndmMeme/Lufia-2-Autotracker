@@ -1,8 +1,15 @@
-# Lufia 2 Auto Tracker v1.4.7
+# Lufia 2 Auto Tracker v1.4.8
 
 A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (SNES), fully refactored in **Python (PyQt6)**.
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
+
+## ✨ New in v1.4.8
+
+*   **Smaller Standalone Build**: The self-contained helper is trimmed and compressed without requiring users to install .NET.
+*   **Trim-Safe Protocol**: Compile-time JSON metadata preserves tracker state, status, and root-hint payloads in optimized builds.
+*   **Less Polling Overhead**: Core state changes are compared directly instead of serializing both snapshots every polling cycle.
+*   **Release Size Validation**: Self-tests exercise the exact JSON protocol from the final trimmed helper and packaged executable.
 
 ## ✨ New in v1.4.7
 

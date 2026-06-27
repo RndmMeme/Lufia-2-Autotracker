@@ -21,8 +21,9 @@ namespace Lufia2AutoTracker.Helper.Core
             try
             {
                 string json = File.ReadAllText(path);
-                var result = JsonSerializer.Deserialize<RootHintDocument>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize(
+                    json,
+                    TrackerJsonContext.Default.RootHintDocument);
 
                 Console.WriteLine($"[Config] Loaded emulator root hints from {path}");
                 return result;

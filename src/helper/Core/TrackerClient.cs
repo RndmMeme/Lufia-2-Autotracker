@@ -6,6 +6,20 @@ using System.Threading;
 
 namespace Lufia2AutoTracker.Helper.Core
 {
+    public sealed class TrackerStatusEnvelope
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("tracker_status")]
+        public TrackerStatus Status { get; init; } = new();
+    }
+
+    public sealed class TrackerStatus
+    {
+        public string State { get; init; } = string.Empty;
+        public string Message { get; init; } = string.Empty;
+        public string? Process { get; init; }
+        public string? Profile { get; init; }
+    }
+
     public class TrackerClient
     {
         private const string Host = "127.0.0.1";
@@ -68,22 +82,29 @@ namespace Lufia2AutoTracker.Helper.Core
 
         public void SendState(GameState state)
         {
-            SendPayload(state);
+            SendJson(SerializeState(state));
         }
 
         public void SendStatus(string state, string message, string? processName = null, string? profileName = null)
         {
-            SendPayload(new {
-                tracker_status = new {
-                    state,
-                    message,
-                    process = processName,
-                    profile = profileName
+            var payload = new TrackerStatusEnvelope {
+                Status = new TrackerStatus {
+                    State = state,
+                    Message = message,
+                    Process = processName,
+                    Profile = profileName
                 }
-            });
+            };
+            SendJson(SerializeStatus(payload));
         }
 
-        private void SendPayload(object payload)
+        internal static string SerializeState(GameState state) =>
+            JsonSerializer.Serialize(state, TrackerJsonContext.Default.GameState);
+
+        internal static string SerializeStatus(TrackerStatusEnvelope status) =>
+            JsonSerializer.Serialize(status, TrackerJsonContext.Default.TrackerStatusEnvelope);
+
+        private void SendJson(string json)
         {
             if (!IsConnected)
             {
@@ -93,8 +114,7 @@ namespace Lufia2AutoTracker.Helper.Core
 
             try
             {
-                string json = JsonSerializer.Serialize(payload) + "\n";
-                byte[] data = Encoding.UTF8.GetBytes(json);
+                byte[] data = Encoding.UTF8.GetBytes(json + "\n");
                 lock (_sendLock)
                 {
                     _stream!.Write(data, 0, data.Length);

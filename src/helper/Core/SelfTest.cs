@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 namespace Lufia2AutoTracker.Helper.Core
 {
@@ -67,6 +69,31 @@ namespace Lufia2AutoTracker.Helper.Core
                 string? path = ConfigLoader.ResolveConfigPath(dataDirectory);
                 var config = ConfigLoader.Load(dataDirectory);
                 return path != null && File.Exists(path) && config != null && config.root_hints.Count >= 2;
+            });
+
+            failures += Check("source-generated JSON preserves tracker protocol", () =>
+            {
+                string stateJson = TrackerClient.SerializeState(new GameState {
+                    Inventory = new List<string> { "Arrow" },
+                    PlayerX = 123,
+                    TransportMode = "walk"
+                });
+                using JsonDocument state = JsonDocument.Parse(stateJson);
+
+                string statusJson = TrackerClient.SerializeStatus(new TrackerStatusEnvelope {
+                    Status = new TrackerStatus {
+                        State = "attached",
+                        Message = "ready",
+                        Process = "snes9x-x64"
+                    }
+                });
+                using JsonDocument status = JsonDocument.Parse(statusJson);
+                JsonElement statusBody = status.RootElement.GetProperty("tracker_status");
+
+                return state.RootElement.GetProperty("inventory")[0].GetString() == "Arrow" &&
+                       state.RootElement.GetProperty("player_x").GetInt32() == 123 &&
+                       statusBody.GetProperty("state").GetString() == "attached" &&
+                       statusBody.GetProperty("process").GetString() == "snes9x-x64";
             });
 
             failures += Check("dungeon mapping loads", () =>

@@ -30,7 +30,7 @@ namespace Lufia2AutoTracker.Helper
                 return SelfTest.Run(dataDirectory);
             }
 
-            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.7");
+            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.8");
             Console.WriteLine($"[Config] Data directory: {dataDirectory ?? "auto-detect"}");
 
             LoadDungeons(dataDirectory, "dungeon_flags_snes9x.json");
@@ -162,28 +162,8 @@ namespace Lufia2AutoTracker.Helper
                             ? $"{lastState.PlayerX},{lastState.PlayerY},{lastState.TransportMode}"
                             : string.Empty;
 
-                        var coreStateCurrent = new {
-                            inventory = state.Inventory,
-                            characters = state.Characters,
-                            capsules = state.Capsules,
-                            capsule_sprite_values = state.CapsuleSpriteValues,
-                            cleared_locations = state.ClearedLocations,
-                            scenario = state.ScenarioItems,
-                            maidens = state.Maidens
-                        };
-                        var coreStateLast = lastState != null ? new {
-                            inventory = lastState.Inventory,
-                            characters = lastState.Characters,
-                            capsules = lastState.Capsules,
-                            capsule_sprite_values = lastState.CapsuleSpriteValues,
-                            cleared_locations = lastState.ClearedLocations,
-                            scenario = lastState.ScenarioItems,
-                            maidens = lastState.Maidens
-                        } : null;
-
                         bool positionChanged = currentPosition != lastPosition;
-                        bool coreChanged = JsonSerializer.Serialize(coreStateCurrent) !=
-                                           (coreStateLast == null ? string.Empty : JsonSerializer.Serialize(coreStateLast));
+                        bool coreChanged = !CoreStateEquals(state, lastState);
 
                         if (coreChanged)
                         {
@@ -386,6 +366,32 @@ namespace Lufia2AutoTracker.Helper
         {
             try { return process.HasExited; }
             catch { return true; }
+        }
+
+        private static bool CoreStateEquals(GameState current, GameState? previous)
+        {
+            if (previous == null) return false;
+            return SequenceEqual(current.Inventory, previous.Inventory) &&
+                   SequenceEqual(current.Characters, previous.Characters) &&
+                   SequenceEqual(current.Capsules, previous.Capsules) &&
+                   SequenceEqual(current.CapsuleSpriteValues, previous.CapsuleSpriteValues) &&
+                   SequenceEqual(current.ClearedLocations, previous.ClearedLocations) &&
+                   SequenceEqual(current.ScenarioItems, previous.ScenarioItems) &&
+                   DictionariesEqual(current.Maidens, previous.Maidens);
+        }
+
+        private static bool SequenceEqual<T>(IEnumerable<T>? left, IEnumerable<T>? right) =>
+            left == null ? right == null : right != null && left.SequenceEqual(right);
+
+        private static bool DictionariesEqual<TKey, TValue>(
+            IReadOnlyDictionary<TKey, TValue>? left,
+            IReadOnlyDictionary<TKey, TValue>? right) where TKey : notnull
+        {
+            if (left == null) return right == null;
+            if (right == null || left.Count != right.Count) return false;
+            return left.All(pair =>
+                right.TryGetValue(pair.Key, out TValue? value) &&
+                EqualityComparer<TValue>.Default.Equals(pair.Value, value));
         }
 
         private static string? GetOption(string[] args, string option)

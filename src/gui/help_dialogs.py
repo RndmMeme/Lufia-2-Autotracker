@@ -99,12 +99,12 @@ class HelpDialog(QDialog):
         self.add_page("Introduction", f"""
             <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v{APP_VERSION}!</h3>
             <p>This tracker helps you keep track of your randomizer run with advanced features like auto-tracking, map visualization, and inventory management.</p>
-            <p><b>New in v1.4.7:</b></p>
+            <p><b>New in v1.4.8:</b></p>
             <ul>
-                <li><b>Canonical Memory Map:</b> Every core game value is read from one emulator-independent Lufia II WRAM offset.</li>
-                <li><b>Root-Based Resolution:</b> Discovery produces one verified WRAM root and an optional ROM root.</li>
-                <li><b>Single-Anchor Fallback:</b> Historical Snes9x addresses now reconstruct only the WRAM root; all values still use the canonical map.</li>
-                <li><b>Portable ROM Discovery:</b> ROM signatures and table validation replace fixed Snes9x memory-distance assumptions.</li>
+                <li><b>Smaller Standalone Build:</b> The bundled helper is trimmed and compressed while remaining self-contained.</li>
+                <li><b>Trim-Safe Protocol:</b> Compile-time JSON metadata preserves state, status, and root-hint payloads.</li>
+                <li><b>Lower Polling Overhead:</b> Tracker state is compared directly instead of serialized twice every cycle.</li>
+                <li><b>Canonical Roots:</b> The emulator-independent WRAM and ROM root architecture from v1.4.7 remains unchanged.</li>
             </ul>
         """)
         
