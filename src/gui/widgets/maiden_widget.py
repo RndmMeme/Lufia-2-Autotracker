@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QPixmap
+from .positioning_canvas import PositioningCanvas
 
 class DraggableLabel(QLabel):
     clicked_signal = pyqtSignal()
@@ -119,7 +120,7 @@ class MaidenCell(QWidget):
             self.loc_label.hide()
 
 
-class MaidenWidget(QWidget):
+class MaidenWidget(PositioningCanvas):
     """
     Displays the 3 Maidens (Claire, Lisa, Marie).
     """
@@ -151,20 +152,21 @@ class MaidenWidget(QWidget):
         self.refresh_state(self.state_manager.inventory)
 
     def update_positions(self):
-        spacing = 90
-        x = 10
-        y = 10
+        scale = self.icon_scale
+        gap = max(5, round(10 * scale))
+        x = round(10 * scale)
+        y = round(10 * scale)
         
         for name, cell in self.cells.items():
             default_x = x
             default_y = y
-            x += spacing
+            x += cell.width() + gap
             
-            pos = self.layout_manager.get_position("maidens", name)
+            pos = self.layout_manager.get_position("maidens", name, scale)
             if pos:
                 cell.move(pos[0], pos[1])
             else:
-                cell.move(default_x, default_y)
+                cell.move(self.snap_position(default_x, default_y))
 
         self.update_min_size()
 
@@ -173,7 +175,20 @@ class MaidenWidget(QWidget):
             cell.set_edit_mode(enabled)
             
     def _on_cell_moved(self, name, x, y):
-        self.layout_manager.set_position("maidens", name, x, y)
+        point = self.snap_position(x, y)
+        self.cells[name].move(point)
+        self.layout_manager.set_position("maidens", name, point.x(), point.y(), self.icon_scale)
+        self.update_min_size()
+
+    def auto_align(self):
+        self.layout_manager.clear_positions("maidens")
+        self.update_positions()
+        positions = {}
+        for name, cell in self.cells.items():
+            point = self.snap_position(cell.x(), cell.y(), force=True)
+            cell.move(point)
+            positions[name] = (point.x(), point.y())
+        self.layout_manager.replace_positions("maidens", positions, self.icon_scale)
         self.update_min_size()
 
     def update_min_size(self):

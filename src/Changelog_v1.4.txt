@@ -137,3 +137,24 @@ v1.4.8 Update - Compressed Standalone Release
 *   **Verification**:
     *   Added protocol self-tests for state and tracker-status JSON property names.
     *   Run the same self-tests from both the trimmed helper and the final packaged executable.
+
+v1.4.9 Update - Diagnostics, State Safety & Flexible Layouts
+-----------------------------------------------------------
+*   **Diagnostics**:
+    *   Added rotating `tracker.log` and `error.log` files under the user's local application-data directory.
+    *   Added uncaught Python/thread hooks, Qt message capture, helper stream routing, and contextual memory-read errors.
+    *   Added Help > Open Log Folder.
+*   **Tracker Reliability**:
+    *   Incomplete memory snapshots are logged for diagnosis but never transmitted as game state.
+    *   Empty or duplicate party snapshots are rejected; the UI preserves its last valid inventory and characters.
+    *   Removed duplicate Python processing of every helper payload and made one-shot Sync wait for a valid snapshot.
+*   **Dungeon Interaction**:
+    *   Manual dungeon clicks now toggle only cleared state; red/green accessibility remains derived from logic.
+*   **Layouts**:
+    *   Saved coordinates are scale-independent so image spacing grows and shrinks proportionally.
+    *   Added optional placement grids, snap-to-grid, grid sizes, and per-canvas/all-canvas auto-align.
+    *   Retained unrestricted free placement when snapping is disabled.
+    *   Moved writable layout files out of the packaged temporary directory into local application data.
+    *   Added a persistent View option to hide active human party members from the Characters canvas.
+*   **Windows**:
+    *   Floating docks now use normal window flags and no longer behave as parent-owned tool windows.

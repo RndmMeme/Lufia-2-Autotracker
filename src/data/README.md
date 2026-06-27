@@ -5,4 +5,6 @@
 - `dungeon_flags_*.json`: dungeon flag descriptions. Their original host-address keys are normalized to offsets when loaded.
 - Remaining JSON files describe tracker items, locations, layouts, shops, and sprites.
 
+Writable layout overrides are stored under `%LOCALAPPDATA%\Lufia2AutoTracker`; packaged data remains read-only.
+
 New game-memory fields belong in `src/helper/Core/Lufia2MemoryMap.cs` as canonical WRAM or ROM offsets, not in an emulator-specific address table.

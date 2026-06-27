@@ -59,6 +59,7 @@ class StateManager(QObject):
         self._manual_character_overrides: Dict[str, bool] = {}
         
         # --- Load Location Mapping ---
+        mapping_path = "<unresolved>"
         try:
              import os
              import sys
@@ -72,8 +73,8 @@ class StateManager(QObject):
              with open(mapping_path, 'r') as f:
                  self._location_mapping = json.load(f)
              logging.info(f"Loaded {len(self._location_mapping)} location mappings.")
-        except Exception as e:
-            logging.error(f"Failed to load location mapping: {e}")
+        except Exception:
+            logging.exception("Failed to load location mapping | path=%s", mapping_path)
             self._location_mapping = {}
 
     def _normalize_location_name(self, raw_loc):
@@ -125,6 +126,21 @@ class StateManager(QObject):
         self.location_changed.emit(name, state)
         logging.info(f"Manual override: Location {name} -> {state}")
 
+    def toggle_manual_location_cleared(self, name: str):
+        """Toggle completion while keeping accessibility derived from game logic."""
+        if self._manual_location_overrides.get(name) == "cleared":
+            del self._manual_location_overrides[name]
+            logging.info("Manual completion removed | location=%s", name)
+            self.refresh_logic()
+            restored_state = self._locations.get(name)
+            if restored_state:
+                self.location_changed.emit(name, restored_state)
+            return
+
+        self._manual_location_overrides[name] = "cleared"
+        self.location_changed.emit(name, "cleared")
+        logging.info("Manual completion set | location=%s", name)
+
     def toggle_manual_inventory(self, item_name: str):
         """User clicked an item icon."""
         current = self.inventory.get(item_name, False)
@@ -132,8 +148,6 @@ class StateManager(QObject):
         self._manual_inventory_overrides[item_name] = new_state
         self.inventory_changed.emit(self.inventory)
         logging.info(f"Manual override: Item {item_name} -> {new_state}")
-
-        logging.info("Manual overrides reset.")
 
     def reset_state(self):
         """Full reset of tracker state (Raw Data + Overrides + Manual Sprite removals)."""
@@ -383,6 +397,13 @@ class StateManager(QObject):
         """
         if "error" in payload:
             logging.error(f"Helper status: {payload['error']}")
+            return
+
+        if "characters" in payload and payload["characters"] == []:
+            logging.warning(
+                "Rejected semantically invalid tracker snapshot | reason=empty_party | keys=%s",
+                sorted(payload.keys()),
+            )
             return
 
         # Check for Seed Change (Spoiler Log Hash)

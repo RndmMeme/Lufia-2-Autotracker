@@ -74,11 +74,10 @@ class HelperInterface:
                     logging.error("Client read error (OSError). Stopping.")
                     if self.callback: self.callback({"error": "Tracker socket connection lost (OSError)."})
                 break
-            except Exception as e:
+            except Exception:
                 if self.running:
-                     import traceback
-                     logging.error(f"Client read error: {e}\n{traceback.format_exc()}")
-                     if self.callback: self.callback({"error": f"Tracker socket exception: {e}"})
+                     logging.exception("Tracker client read failed")
+                     if self.callback: self.callback({"error": "Tracker socket read failed. See error.log."})
                 break
 
     def _process_payload(self, json_str):
@@ -131,20 +130,26 @@ class HelperInterface:
             self.stdout_thread.start()
             self.stderr_thread.start()
             
-        except Exception as e:
-            logging.error(f"Failed to launch helper: {e}")
+        except Exception:
+            logging.exception("Failed to launch tracker helper | path=%s", abs_path)
             self.running = False
             if self.callback:
-                self.callback({"error": f"Failed to launch tracker helper: {e}"})
+                self.callback({"error": "Failed to launch tracker helper. See error.log."})
 
     def _read_output(self, stream, prefix):
         """Reads lines from a stream and logs them."""
         try:
             for line in iter(stream.readline, ''):
                 if line:
-                    logging.info(f"[{prefix}] {line.strip()}")
-        except Exception as e:
-            logging.error(f"Error reading {prefix}: {e}")
+                    message = f"[{prefix}] {line.strip()}"
+                    if prefix == "HELPER_ERR" or "[Error]" in line:
+                        logging.error(message)
+                    elif "[Warning]" in line:
+                        logging.warning(message)
+                    else:
+                        logging.info(message)
+        except Exception:
+            logging.exception("Error reading helper stream | stream=%s", prefix)
         finally:
             stream.close()
 
@@ -154,8 +159,8 @@ class HelperInterface:
             try:
                 # Append newline to match reading logic
                 self.client_socket.sendall((cmd + "\n").encode('utf-8'))
-            except Exception as e:
-                logging.error(f"Error sending command: {e}")
+            except Exception:
+                logging.exception("Failed to send helper command | command=%s", cmd)
 
     def stop(self):
         self.running = False
@@ -163,12 +168,14 @@ class HelperInterface:
             if self.client_socket: 
                 self.client_socket.shutdown(socket.SHUT_RDWR)
                 self.client_socket.close()
-        except: pass
+        except OSError:
+            logging.debug("Client socket was already closed", exc_info=True)
         
         try:
             if self.server_socket: 
                 self.server_socket.close()
-        except: pass
+        except OSError:
+            logging.debug("Server socket was already closed", exc_info=True)
         
         if self.process: 
             try:
@@ -180,8 +187,8 @@ class HelperInterface:
                     logging.warning("Helper process did not terminate. Force killing...")
                     self.process.kill()
                     self.process.wait(timeout=2)
-            except Exception as e:
-                logging.error(f"Error stopping helper: {e}")
+            except Exception:
+                logging.exception("Failed to stop tracker helper")
             self.process = None
 
     def _server_loop(self):
@@ -219,14 +226,12 @@ class HelperInterface:
                     
                 except socket.timeout:
                     continue
-                except Exception as e:
-                    import traceback
-                    logging.error(f"Server accept error: {e}\n{traceback.format_exc()}")
+                except Exception:
+                    logging.exception("Tracker server accept failed")
                     if not self.running: break
                     
-        except Exception as e:
-            import traceback
-            logging.error(f"Server setup error: {e}\n{traceback.format_exc()}")
+        except Exception:
+            logging.exception("Tracker server setup failed | host=%s | port=%s", HOST, PORT)
         finally:
             if self.callback:
                 self.callback({"error": "Tracker socket closed or timed out."})

@@ -1,6 +1,6 @@
 # Emulator Compatibility
 
-Compatibility in v1.4.8 is determined by validated memory content, not by the executable name alone. Process names are used only to find candidates. Every successful attachment uses the same canonical Lufia II memory map.
+Compatibility in v1.4.9 is determined by validated memory content, not by the executable name alone. Process names are used only to find candidates. Every successful attachment uses the same canonical Lufia II memory map.
 
 ## Live verification matrix
 

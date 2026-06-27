@@ -1,16 +1,18 @@
 import sys
 import logging
+from utils.logging_config import configure_logging, install_qt_message_logging
+
+LOG_DIRECTORY = configure_logging()
+
 from PyQt6.QtWidgets import QApplication
 from gui.main_window import MainWindow
 from core.data_loader import DataLoader
 from core.logic_engine import LogicEngine
 from core.state_manager import StateManager
 
-# Setup basic logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 def main():
     app = QApplication(sys.argv)
+    install_qt_message_logging()
     app.setApplicationName("Lufia 2 Auto Tracker")
     app.setStyle("Fusion")
     
@@ -104,6 +106,7 @@ def main():
     # GUI
     window = MainWindow(state_manager, data_loader, logic_engine)
     window.show()
+    logging.info("GUI ready | log_directory=%s", LOG_DIRECTORY)
     
     sys.exit(app.exec())
 

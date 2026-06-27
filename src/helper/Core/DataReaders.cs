@@ -21,7 +21,7 @@ namespace Lufia2AutoTracker.Helper.Core
             _profile = profile;
         }
 
-        private byte[] ReadWram(int offset, int size, bool required = true)
+        private byte[] ReadWram(int offset, int size, bool required = true, string? field = null)
         {
             IntPtr address = _profile.ResolveWram(offset);
             byte[] buffer = new byte[size];
@@ -35,42 +35,71 @@ namespace Lufia2AutoTracker.Helper.Core
             {
                 if (required) _requiredReadFailures++;
                 int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
-                Console.WriteLine($"[DEBUG] ReadMemory FAILED at 0x{address.ToString("X")} (Size: {size}) - Win32 Error: {err}");
+                Console.WriteLine(
+                    $"[Error] [MemoryRead] field={field ?? "unknown"} offset=0x{offset:X} " +
+                    $"address=0x{address:X} size={size} win32Error={err}");
             }
             return new byte[size]; // Return empty on failure
         }
         
-        private byte ReadByte(int offset) => ReadWram(offset, 1)[0];
+        private byte ReadByte(int offset, string field) => ReadWram(offset, 1, field: field)[0];
 
         public GameState ReadGameState()
         {
             _requiredReadFailures = 0;
             var state = new GameState();
-            try { state.Inventory = ReadInventory(); } catch {}
-            try { state.ScenarioItems = ReadScenario(); } catch {}
-            try { state.Capsules = ReadCapsules(); } catch {}
-            try { state.CapsuleSpriteValues = ReadCapsuleSpriteValues(); } catch {}
-            try { state.Characters = ReadCharacters(); } catch {}
-            try { state.ClearedLocations = ReadDungeonFlags(); } catch {}
-            
-            var pos = ReadPosition();
-            state.PlayerX = pos.X;
-            state.PlayerY = pos.Y;
-            state.TransportMode = pos.Mode;
+            TryReadSection("inventory", () => state.Inventory = ReadInventory());
+            TryReadSection("scenario", () => state.ScenarioItems = ReadScenario());
+            TryReadSection("capsules", () => state.Capsules = ReadCapsules());
+            TryReadSection("capsuleSprites", () => state.CapsuleSpriteValues = ReadCapsuleSpriteValues(), required: false);
+            TryReadSection("characters", () => state.Characters = ReadCharacters());
+            TryReadSection("dungeonFlags", () => state.ClearedLocations = ReadDungeonFlags());
+            TryReadSection("position", () => {
+                var pos = ReadPosition();
+                state.PlayerX = pos.X;
+                state.PlayerY = pos.Y;
+                state.TransportMode = pos.Mode;
+            });
+
+            bool validParty = HasValidParty(state);
+            if (!validParty)
+            {
+                _requiredReadFailures++;
+                Console.WriteLine("[Warning] [StateValidation] rejected snapshot with empty or duplicate party");
+            }
 
             LastRequiredReadSucceeded = _requiredReadFailures == 0;
 
             return state;
         }
 
+        internal static bool HasValidParty(GameState state) =>
+            state.Characters != null &&
+            state.Characters.Count > 0 &&
+            state.Characters.Distinct(StringComparer.Ordinal).Count() == state.Characters.Count;
+
+        private void TryReadSection(string section, Action read, bool required = true)
+        {
+            try
+            {
+                read();
+            }
+            catch (Exception ex)
+            {
+                if (required) _requiredReadFailures++;
+                Console.WriteLine(
+                    $"[Error] [StateRead] section={section} exception={ex.GetType().Name} message={ex.Message}");
+            }
+        }
+
         // --- Inventory Logic ---
         private List<string> ReadInventory()
         {
             var obtained = new List<string>();
-            var invData = ReadWram(Lufia2MemoryMap.Wram.InventoryStart, Lufia2MemoryMap.Wram.InventoryLength);
+            var invData = ReadWram(Lufia2MemoryMap.Wram.InventoryStart, Lufia2MemoryMap.Wram.InventoryLength, field: "inventory");
             
             // Read Scenario Block (used for Special items bitmask)
-            var scenarioData = ReadWram(Lufia2MemoryMap.Wram.ScenarioStart, Lufia2MemoryMap.Wram.ScenarioLength);
+            var scenarioData = ReadWram(Lufia2MemoryMap.Wram.ScenarioStart, Lufia2MemoryMap.Wram.ScenarioLength, field: "scenario");
             // v1.3: reversed_memory_value = memory_value[::-1]
             Array.Reverse(scenarioData); 
             string binaryString = string.Join("", scenarioData.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
@@ -113,7 +142,7 @@ namespace Lufia2AutoTracker.Helper.Core
         private List<string> ReadScenario()
         {
             var obtained = new List<string>();
-            var scenarioData = ReadWram(Lufia2MemoryMap.Wram.ScenarioStart, Lufia2MemoryMap.Wram.ScenarioLength);
+            var scenarioData = ReadWram(Lufia2MemoryMap.Wram.ScenarioStart, Lufia2MemoryMap.Wram.ScenarioLength, field: "scenario");
             Array.Reverse(scenarioData);
             string binaryString = string.Join("", scenarioData.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
 
@@ -162,7 +191,7 @@ namespace Lufia2AutoTracker.Helper.Core
             var chars = new List<string>();
             for (int slot = 0; slot < Lufia2MemoryMap.Wram.PartyCount; slot++)
             {
-                byte id = ReadByte(Lufia2MemoryMap.Wram.PartyStart + slot);
+                byte id = ReadByte(Lufia2MemoryMap.Wram.PartyStart + slot, $"party[{slot}]");
                 string name = GameData.GetCharacterName(id);
                 if (name != "Empty" && name != "Unknown") chars.Add(name);
             }
@@ -178,7 +207,7 @@ namespace Lufia2AutoTracker.Helper.Core
             
             for (int addr = start; addr <= end; addr++)
             {
-                byte val = ReadByte(addr);
+                byte val = ReadByte(addr, $"capsule[{addr - start}]");
                 if (val != 0x00)
                 {
                     int idx = addr - start;
@@ -203,7 +232,15 @@ namespace Lufia2AutoTracker.Helper.Core
                     i * Lufia2MemoryMap.Rom.CapsuleSpriteStride);
                 byte[] bytes = new byte[2];
                 IntPtr bytesRead;
-                NativeMethods.ReadProcessMemory(_processHandle, address, bytes, 2, out bytesRead);
+                if (!NativeMethods.ReadProcessMemory(_processHandle, address, bytes, 2, out bytesRead) ||
+                    bytesRead.ToInt64() != 2)
+                {
+                    int error = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+                    Console.WriteLine(
+                        $"[Warning] [RomRead] field=capsuleSprite[{i}] address=0x{address:X} " +
+                        $"size=2 bytesRead={bytesRead.ToInt64()} win32Error={error}");
+                    return new List<string>();
+                }
 
                 // Hex format "A502" upper case
                 string hex = $"{bytes[0]:X2}{bytes[1]:X2}";
@@ -220,7 +257,7 @@ namespace Lufia2AutoTracker.Helper.Core
         // --- Position Logic ---
         private (int X, int Y, string Mode) ReadPosition()
         {
-            byte mode = ReadByte(Lufia2MemoryMap.Wram.Transport);
+            byte mode = ReadByte(Lufia2MemoryMap.Wram.Transport, "transport");
             int xFast, xSlow, yFast, ySlow;
             string modeStr = "walk";
 
@@ -236,8 +273,8 @@ namespace Lufia2AutoTracker.Helper.Core
                 yFast = Lufia2MemoryMap.Wram.WalkYLow; ySlow = Lufia2MemoryMap.Wram.WalkYHigh;
             }
 
-            int x = (ReadByte(xSlow) << 8) | ReadByte(xFast);
-            int y = (ReadByte(ySlow) << 8) | ReadByte(yFast);
+            int x = (ReadByte(xSlow, "position.x.high") << 8) | ReadByte(xFast, "position.x.low");
+            int y = (ReadByte(ySlow, "position.y.high") << 8) | ReadByte(yFast, "position.y.low");
             return (x, y, modeStr);
         }
 
@@ -247,7 +284,7 @@ namespace Lufia2AutoTracker.Helper.Core
             var cleared = new List<string>();
             int start = Lufia2MemoryMap.Wram.DungeonFlagsStart;
             int size = Lufia2MemoryMap.Wram.DungeonFlagsLength;
-            byte[] flags = ReadWram(start, size);
+            byte[] flags = ReadWram(start, size, field: "dungeonFlags");
 
             foreach (var d in GameData.Dungeons)
             {
@@ -331,9 +368,10 @@ namespace Lufia2AutoTracker.Helper.Core
                      });
                  }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Silent catch
+                Console.WriteLine(
+                    $"[Error] [SpoilerRead] exception={ex.GetType().Name} message={ex.Message}");
             }
             return logs;
         }

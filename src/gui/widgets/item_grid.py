@@ -11,6 +11,7 @@ from PyQt6.QtGui import QDrag, QPixmap
 
 from .item_icon import ItemIcon
 import logging
+from .positioning_canvas import PositioningCanvas
 
 class DraggableItemIcon(ItemIcon):
     """
@@ -91,7 +92,7 @@ class DraggableItemIcon(ItemIcon):
             super().mouseReleaseEvent(event)
 
 
-class ItemGrid(QWidget):
+class ItemGrid(PositioningCanvas):
     """
     A grid container for ItemIcons that supports absolute positioning.
     Refactored from FlowLayout to Free Placement.
@@ -134,21 +135,23 @@ class ItemGrid(QWidget):
         self.update_positions()
 
     def update_positions(self):
-        x = 5
-        y = 5
+        scale = self.current_scale
+        x = round(5 * scale)
+        y = round(5 * scale)
         col = 0
         cols = 6
-        spacing_x = int((self.icon_size * self.current_scale) + 10)
-        spacing_y = int((self.icon_size * self.current_scale) + 20) if self.show_labels else int((self.icon_size * self.current_scale) + 5)
+        spacing_x = max(1, round((self.icon_size + 10) * scale))
+        vertical_metric = self.icon_size + (20 if self.show_labels else 5)
+        spacing_y = max(1, round(vertical_metric * scale))
         
         for name, icon in self.icons.items():
-            pos = self.layout_manager.get_position(self.widget_id, name)
+            pos = self.layout_manager.get_position(self.widget_id, name, scale)
             if pos:
                 icon.move(pos[0], pos[1])
             else:
                 default_x = x + (col * spacing_x)
                 default_y = y
-                icon.move(default_x, default_y)
+                icon.move(self.snap_position(default_x, default_y))
                 
                 col += 1
                 if col >= cols:
@@ -165,7 +168,20 @@ class ItemGrid(QWidget):
         self.item_clicked.emit(name, state)
 
     def _on_item_moved(self, name, x, y):
-        self.layout_manager.set_position(self.widget_id, name, x, y)
+        point = self.snap_position(x, y)
+        self.icons[name].move(point)
+        self.layout_manager.set_position(self.widget_id, name, point.x(), point.y(), self.current_scale)
+        self.update_min_size()
+
+    def auto_align(self):
+        self.layout_manager.clear_positions(self.widget_id)
+        self.update_positions()
+        positions = {}
+        for name, icon in self.icons.items():
+            point = self.snap_position(icon.x(), icon.y(), force=True)
+            icon.move(point)
+            positions[name] = (point.x(), point.y())
+        self.layout_manager.replace_positions(self.widget_id, positions, self.current_scale)
         self.update_min_size()
 
     def update_min_size(self):

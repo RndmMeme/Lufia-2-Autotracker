@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QGridLayout, QLabel, QVBoxLayout, QFrame, QScrollArea
 from PyQt6.QtCore import Qt, pyqtSignal, QMimeData, QPoint
 from PyQt6.QtGui import QDrag, QPixmap, QPainter, QColor
+from .positioning_canvas import PositioningCanvas
 
 class DraggableLabel(QLabel):
     clicked_signal = pyqtSignal()
@@ -130,7 +131,7 @@ class CharacterCell(QWidget):
             self.loc_label.hide()
 
 
-class CharactersCanvas(QWidget):
+class CharactersCanvas(PositioningCanvas):
     # ... init ...
     def __init__(self, data_loader, state_manager, layout_manager, parent=None):
         super().__init__(parent)
@@ -141,6 +142,7 @@ class CharactersCanvas(QWidget):
         self.cells = {} # name -> CharacterCell
         self.edit_mode = False
         self.show_locations = True
+        self.show_active_party = True
         self.icon_scale = 1.0
         
         self.init_ui()
@@ -179,23 +181,24 @@ class CharactersCanvas(QWidget):
 
     def _reflow_grid(self):
         """Recalculates positions for non-manually-moved cells based on content height."""
-        x_start = 5
-        y_start = 5
+        scale = self.icon_scale
+        x_start = round(5 * scale)
+        y_start = round(5 * scale)
         
         current_x = x_start
         current_y = y_start
         
         col_count = 0
         max_cols = 4
-        col_width = 75 # Cell width ~70 + gap
+        column_gap = max(5, round(10 * scale))
+        row_gap = max(10, round(25 * scale))
         row_max_h = 0
-        
-        # Row Buffer
-        current_row_cells = []
         
         for name in self._ordered_items:
             if name not in self.cells: continue
             cell = self.cells[name]
+            if cell.isHidden():
+                continue
             
             # Resize cell to fit content (Dynamic Height)
             if hasattr(cell, 'layout') and cell.layout:
@@ -209,15 +212,16 @@ class CharactersCanvas(QWidget):
             default_y = current_y
             
             # Check Manual Override
-            pos = self.layout_manager.get_position("characters", name)
+            pos = self.layout_manager.get_position("characters", name, scale)
             if pos:
                 cell.move(pos[0], pos[1])
             else:
-                cell.move(default_x, default_y)
+                snapped = self.snap_position(default_x, default_y)
+                cell.move(snapped)
                 
             # Calculate next default position
             row_max_h = max(row_max_h, h)
-            current_x += col_width
+            current_x += w + column_gap
             col_count += 1
             
             if col_count >= max_cols:
@@ -225,9 +229,8 @@ class CharactersCanvas(QWidget):
                 col_count = 0
                 current_x = x_start
                 # Move Down by the tallest item in the previous row + EXTRA Padding (Doubled request)
-                current_y += row_max_h + 50 
+                current_y += row_max_h + row_gap
                 row_max_h = 0
-                current_row_cells = []
         
         # Update Canvas Size
         self.update_min_size()
@@ -240,13 +243,30 @@ class CharactersCanvas(QWidget):
             cell.set_edit_mode(enabled)
 
     def _on_cell_moved(self, name, x, y):
-        self.layout_manager.set_position("characters", name, x, y)
+        point = self.snap_position(x, y)
+        self.cells[name].move(point)
+        self.layout_manager.set_position("characters", name, point.x(), point.y(), self.icon_scale)
+        self.update_min_size()
+
+    def auto_align(self):
+        self.layout_manager.clear_positions("characters")
+        self._reflow_grid()
+        positions = {}
+        for name, cell in self.cells.items():
+            if cell.isHidden():
+                continue
+            point = self.snap_position(cell.x(), cell.y(), force=True)
+            cell.move(point)
+            positions[name] = (point.x(), point.y())
+        self.layout_manager.replace_positions("characters", positions, self.icon_scale)
         self.update_min_size()
 
     def update_min_size(self):
         max_x = 0
         max_y = 0
         for cell in self.cells.values():
+            if cell.isHidden():
+                continue
             max_x = max(max_x, cell.x() + cell.width())
             max_y = max(max_y, cell.y() + cell.height())
         self.setMinimumSize(max_x + 10, max_y + 10)
@@ -276,6 +296,10 @@ class CharactersCanvas(QWidget):
         self.show_locations = visible
         self.refresh_state()
 
+    def set_active_party_visible(self, visible):
+        self.show_active_party = visible
+        self.refresh_state()
+
     def toggle_character(self, name):
         is_obtained = self.state_manager.obtained_characters.get(name, False)
         self.state_manager.set_character_obtained(name, not is_obtained)
@@ -300,6 +324,10 @@ class CharactersCanvas(QWidget):
             is_active_capsule = name in obtained_capsules
             is_obtained = obtained_chars.get(name, False)
             location = char_locations.get(name)
+
+            cell.setVisible(self.show_active_party or not is_active_human)
+            if cell.isHidden():
+                continue
             
             # --- Visual Logic ---
             # 1. Active Human or Capsule -> Full Opacity
@@ -378,6 +406,9 @@ class CharactersWidget(QWidget):
         
     def set_locations_visible(self, visible):
         self.canvas.set_locations_visible(visible)
+
+    def set_active_party_visible(self, visible):
+        self.canvas.set_active_party_visible(visible)
         
     def set_edit_mode(self, enabled):
         self.canvas.set_edit_mode(enabled)

@@ -1,8 +1,19 @@
-# Lufia 2 Auto Tracker v1.4.8
+# Lufia 2 Auto Tracker v1.4.9
 
 A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (SNES), fully refactored in **Python (PyQt6)**.
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
+
+## ✨ New in v1.4.9
+
+*   **Durable Diagnostics**: Rotating session and error logs capture Python, Qt, helper, memory-read, emulator-profile, and exception context.
+*   **Last-Good-State Protection**: Incomplete or semantically invalid memory snapshots are rejected instead of clearing valid tracker state.
+*   **Completion-Only Dungeon Clicks**: Manual clicks now toggle Red/Green ↔ Grey while accessibility remains logic-derived.
+*   **Flexible Placement**: Scale-independent positions preserve proportional spacing; optional grids, snapping, grid sizes, and per-canvas auto-align coexist with free placement.
+*   **Party Display Filter**: View can hide active human party members from the Characters canvas while leaving inactive recruits and capsule monsters visible.
+*   **Normal Floating Windows**: Detached canvases behave as standard windows instead of parent-owned tool windows.
+
+See [LOGGING.md](LOGGING.md) for log locations and diagnostic details.
 
 ## ✨ New in v1.4.8
 
@@ -70,7 +81,7 @@ Ported from Tkinter to **PyQt6**, offering superior stability, smooth rendering,
 
 ### 🎨 Customization
 *   **Docking System**: Rearrange every panel (Map, Tools, Keys, Characters) to suit your workflow. Float windows or dock them.
-*   **Free Placement**: Enable **"Edit Layout"** in *Custom* menu to drag-and-drop *any* icon pixel-perfectly.
+*   **Free or Grid Placement**: Use the *Layout* menu for pixel-perfect dragging, optional grid snapping, and auto-align.
 *   **Theming**: Customize Dock Header colors (with auto-contrast text) and Player Marker colors.
 
 ### 🗺️ Interactive Map
@@ -112,13 +123,14 @@ Or just use the .exe
 
 ## Controls
 
-*   **Left Click (Map)**: Toggle location logic (Red -> Green -> Grey).
+*   **Left Click (Map)**: Toggle dungeon completion (Red/Green ↔ Grey).
 *   **Right Click (Map)**: Open Context Menu (City = Item Search, Dungeon = Char Assign).
 *   **Drag & Drop (Characters)**: Drag character sprites from the top dock onto map locations to assign them.
 *   **Edit Layout Mode**:
-    *   Enable in `Custom -> Edit Layout`.
+    *   Enable in `Layout -> Edit Layout`.
     *   Drag items inside docks to rearrange them.
-    *   Layouts are auto-saved to `layout_config.json`.
+    *   Optionally show a grid, snap while dragging, or auto-align a canvas.
+    *   Layouts are auto-saved under `%LOCALAPPDATA%\Lufia2AutoTracker`.
 
 ## Development Verification
 
@@ -126,6 +138,7 @@ Run the deterministic helper checks:
 
 ```powershell
 dotnet run --project src/helper/Lufia2AutoTracker.Helper.csproj --configuration Debug -- --self-test --data-dir src/data
+python tools/verify_ui_behaviors.py
 ```
 
 With an emulator and Lufia II running, verify live discovery and one state payload:

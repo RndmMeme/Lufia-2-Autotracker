@@ -23,6 +23,7 @@ build/
 !Lufia2AutoTracker_v1.4.6.spec
 !Lufia2AutoTracker_v1.4.7.spec
 !Lufia2AutoTracker_v1.4.8.spec
+!Lufia2AutoTracker_v1.4.9.spec
 src/helper/obj/
 src/helper/bin/Release/net8.0/win-x64/*
 !src/helper/bin/Release/net8.0/win-x64/publish/

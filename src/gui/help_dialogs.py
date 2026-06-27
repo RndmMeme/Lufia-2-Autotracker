@@ -99,12 +99,12 @@ class HelpDialog(QDialog):
         self.add_page("Introduction", f"""
             <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v{APP_VERSION}!</h3>
             <p>This tracker helps you keep track of your randomizer run with advanced features like auto-tracking, map visualization, and inventory management.</p>
-            <p><b>New in v1.4.8:</b></p>
+            <p><b>New in v1.4.9:</b></p>
             <ul>
-                <li><b>Smaller Standalone Build:</b> The bundled helper is trimmed and compressed while remaining self-contained.</li>
-                <li><b>Trim-Safe Protocol:</b> Compile-time JSON metadata preserves state, status, and root-hint payloads.</li>
-                <li><b>Lower Polling Overhead:</b> Tracker state is compared directly instead of serialized twice every cycle.</li>
-                <li><b>Canonical Roots:</b> The emulator-independent WRAM and ROM root architecture from v1.4.7 remains unchanged.</li>
+                <li><b>Durable Error Logs:</b> Python, Qt, helper, and memory-read failures are recorded with context.</li>
+                <li><b>Last-Good-State Protection:</b> Incomplete snapshots no longer erase valid tracker progress.</li>
+                <li><b>Flexible Placement:</b> Free placement now coexists with optional grids, snapping, and auto-align.</li>
+                <li><b>Completion-Only Dungeons:</b> Clicking a dungeon toggles cleared state without overriding accessibility logic.</li>
             </ul>
         """)
         
@@ -115,17 +115,19 @@ class HelpDialog(QDialog):
             <ul>
                 <li><b>Rearrange:</b> Drag 'n drop dock titles to rearrange panels.</li>
                 <li><b>Float:</b> Drag a panel out to make it a separate window.</li>
-                <li><b>Font Size:</b> Enable 'Show Font Adj' in Options. Use (+/-) on dock headers to scale text size.</li>
-                <li><b>Icon Sizing:</b> Enable 'Show Icon Sizing' in Options. Use (+/-) on dock headers to scale portrait/sprite sizes across all icon-based docks.</li>
-                <li><b>Recover Docks:</b> If a dock is accidentally closed, restore it via <b>Custom > Recover Widgets</b>.</li>
-                <li><b>Header Color:</b> Use 'Header Color' in Options to customize dock appearance.</li>
+                <li><b>Font Size:</b> Enable <b>View &gt; Show Font Controls</b>. Use (+/-) on dock headers to scale text size.</li>
+                <li><b>Icon Sizing:</b> Enable <b>View &gt; Show Icon Size Controls</b>. Use (+/-) on dock headers to scale portrait/sprite sizes.</li>
+                <li><b>Recover Docks:</b> Use <b>Layout &gt; Restore Closed Windows</b>.</li>
+                <li><b>Header Color:</b> Use <b>Style &gt; Header Color</b>.</li>
             </ul>
-            <h4>Free Placement (Edit Layout)</h4>
+            <h4>Free & Grid Placement</h4>
             <ul>
-                <li>Toggle 'Edit Layout' in Options.</li>
+                <li>Toggle <b>Layout &gt; Edit Layout</b> for unrestricted free placement.</li>
                 <li>Drag and drop ANY icon in Characters, Tools, or Keys widgets to your preferred order.</li>
+                <li>Use <b>Show Placement Grid</b> and <b>Snap to Grid</b> independently.</li>
+                <li>Choose a grid size or auto-align one/all canvases from the Layout menu.</li>
                 <li>Your layout is saved automatically.</li>
-                <li>Use <b>Custom &gt; Reset Picture Positions</b> to restore icons to default configuration.</li>
+                <li>Icon resizing scales saved coordinates and spacing without moving the dock containers.</li>
             </ul>
         """)
         
@@ -160,14 +162,14 @@ class HelpDialog(QDialog):
         self.add_page("Map & Items", """
             <h3>Map Interaction</h3>
             <ul>
-                <li><b>Left-Click Dungeon:</b> Cycle state (Red -> Green -> Grey -> Red).</li>
+                <li><b>Left-Click Dungeon:</b> Toggle cleared state (Red/Green &harr; Grey).</li>
                 <li><b>Right-Click Dungeon:</b> Open Character Assignment menu.</li>
             </ul>
             <h3>Appearance & Shapes</h3>
             <ul>
-                <li>Use <b>Custom &gt; City Color</b> to adjust the color of cities.</li>
-                <li>Use <b>Custom &gt; City Shape</b> to configure city shape profiles.</li>
-                <li>Use <b>Custom &gt; Dungeon Shape</b> to assign geometric structures to all dungeons.</li>
+                <li>Use <b>Style &gt; City Color</b> to adjust the color of cities.</li>
+                <li>Use <b>Style &gt; City Shape</b> to configure city shape profiles.</li>
+                <li>Use <b>Style &gt; Dungeon Shape</b> to assign geometric structures to all dungeons.</li>
             </ul>
             <h3>Color Codes</h3>
             <ul>
@@ -186,6 +188,7 @@ class HelpDialog(QDialog):
                 <li><b>Sprites:</b> A sprite will appear on the map at the assigned location.</li>
                 <li><b>Drag & Drop:</b> You can drag character sprites on the map if they obscure a location dot!</li>
                 <li><b>Toggle:</b> Use 'Show Sprites' menu to hide/show specific categories (Maidens, Capsules, etc).</li>
+                <li><b>Party Filter:</b> Disable <b>View &gt; Show Active Party Members</b> to hide the four active human slots while keeping inactive recruits and capsule monsters visible.</li>
             </ul>
         """)
 
@@ -200,7 +203,20 @@ class HelpDialog(QDialog):
             </ul>
             <p>These settings are restored automatically when you launch the tracker next time.</p>
         """)
-        # 8. Emulator Support & Disclaimer
+
+        # 8. Diagnostics
+        self.add_page("Diagnostics", """
+            <h3>Logs & Error Reports</h3>
+            <p>Use <b>Help &gt; Open Log Folder</b> to access:</p>
+            <ul>
+                <li><b>tracker.log:</b> session, discovery, synchronization, and recovery events.</li>
+                <li><b>error.log:</b> errors and critical failures with tracebacks and helper context.</li>
+            </ul>
+            <p>Logs rotate automatically and are stored under <code>%LOCALAPPDATA%\\Lufia2AutoTracker\\logs</code>.</p>
+            <p>For emulator problems, reproduce the issue once and provide both current files with the emulator name and version.</p>
+        """)
+
+        # 9. Emulator Support & Disclaimer
         self.add_page("Emulator Support", """
             <h3>Emulator Support & Disclaimer</h3>
             <p>This tracker has been successfully tested with:</p>
@@ -210,8 +226,8 @@ class HelpDialog(QDialog):
                 <li><b>bsnes</b></li>
             </ul>
             <p><b>How detection works:</b> Executable names are only hints. The tracker finds and validates the Lufia II WRAM root, then resolves every game value from one canonical map.</p>
-            <p>Core inventory, character, dungeon, and position tracking can operate from WRAM alone. Capsule sprite metadata and spoiler-log features additionally require a verified ROM mapping.</p>
-            <p>If detection fails, please provide the exact <b>emulator name and version</b> plus the status text shown in the tracker ribbon.</p>
+            <p>Core inventory, character, dungeon, and position tracking can operate from WRAM alone. Capsule sprite metadata additionally requires a verified ROM mapping; spoiler-log discovery is a separate signature scan.</p>
+            <p>If detection fails, provide the emulator name/version and the logs available through <b>Help &gt; Open Log Folder</b>.</p>
         """)
         
         # Select first

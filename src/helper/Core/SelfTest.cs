@@ -96,6 +96,16 @@ namespace Lufia2AutoTracker.Helper.Core
                        statusBody.GetProperty("process").GetString() == "snes9x-x64";
             });
 
+            failures += Check("empty and duplicate party snapshots are rejected", () =>
+            {
+                var valid = new GameState { Characters = new List<string> { "Guy", "Selan" } };
+                var empty = new GameState { Characters = new List<string>() };
+                var duplicate = new GameState { Characters = new List<string> { "Guy", "Guy" } };
+                return DataReaders.HasValidParty(valid) &&
+                       !DataReaders.HasValidParty(empty) &&
+                       !DataReaders.HasValidParty(duplicate);
+            });
+
             failures += Check("dungeon mapping loads", () =>
                 Program.LoadDungeons(dataDirectory, "dungeon_flags_snes9x.json") && GameData.Dungeons.Count > 0);
 

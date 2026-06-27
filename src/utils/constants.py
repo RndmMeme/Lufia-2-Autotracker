@@ -11,6 +11,8 @@ def get_base_dir():
 BASE_DIR = get_base_dir()
 DATA_DIR = BASE_DIR / "src" / "data"
 IMAGES_DIR = BASE_DIR / "images"
+LOCAL_APP_DATA = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+USER_DATA_DIR = LOCAL_APP_DATA / "Lufia2AutoTracker"
 
 # Sacred Pixel Coordinates (Extracted from shared.py in v1.3)
 # DO NOT MODIFY THESE VALUES UNDER ANY CIRCUMSTANCES

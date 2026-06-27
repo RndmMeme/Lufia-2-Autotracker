@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QMenuBar, QMenu, QWidget, QHBoxLayout, QCheckBox, QLabel, QFrame
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtCore import pyqtSignal, Qt
 from .help_dialogs import HelpDialog, AboutDialog
 
@@ -32,11 +32,17 @@ class MenuRibbon(QWidget):
     
     # Edit Layout Signal
     edit_layout_toggled = pyqtSignal(bool)
+    grid_visibility_toggled = pyqtSignal(bool)
+    grid_snap_toggled = pyqtSignal(bool)
+    grid_size_changed = pyqtSignal(int)
+    auto_align_requested = pyqtSignal(str)
+    open_log_folder_requested = pyqtSignal()
     
     restore_windows_requested = pyqtSignal()
     dock_all_requested = pyqtSignal()
     icon_adj_toggled = pyqtSignal(bool)
     locations_text_toggled = pyqtSignal(bool)
+    active_party_visibility_toggled = pyqtSignal(bool)
     
     # Checkbox signals (state changes)
     auto_options_changed = pyqtSignal(dict) # {chars: bool, tools: bool...}
@@ -131,7 +137,43 @@ class MenuRibbon(QWidget):
         self.edit_layout_action.setCheckable(True)
         self.edit_layout_action.toggled.connect(self.edit_layout_toggled.emit)
         layout_menu.addAction(self.edit_layout_action)
+
+        self.show_grid_action = QAction("Show Placement Grid", self)
+        self.show_grid_action.setCheckable(True)
+        self.show_grid_action.toggled.connect(self.grid_visibility_toggled.emit)
+        layout_menu.addAction(self.show_grid_action)
+
+        self.snap_grid_action = QAction("Snap to Grid", self)
+        self.snap_grid_action.setCheckable(True)
+        self.snap_grid_action.toggled.connect(self.grid_snap_toggled.emit)
+        layout_menu.addAction(self.snap_grid_action)
+
+        grid_size_menu = QMenu("Grid Size", self)
+        self.grid_size_group = QActionGroup(self)
+        self.grid_size_group.setExclusive(True)
+        for size in (5, 10, 20, 25):
+            action = QAction(f"{size} px", self)
+            action.setCheckable(True)
+            action.setChecked(size == 10)
+            action.toggled.connect(
+                lambda checked, value=size: self.grid_size_changed.emit(value) if checked else None
+            )
+            self.grid_size_group.addAction(action)
+            grid_size_menu.addAction(action)
+        layout_menu.addMenu(grid_size_menu)
+
+        align_menu = QMenu("Auto-align", self)
+        for label, canvas_id in (
+            ("All Canvases", "all"),
+            ("Tools", "tools"),
+            ("Keys", "keys"),
+            ("Characters", "characters"),
+            ("Maidens", "maidens"),
+        ):
+            align_menu.addAction(label, lambda checked=False, value=canvas_id: self.auto_align_requested.emit(value))
+        layout_menu.addMenu(align_menu)
         
+        layout_menu.addAction("Save Current as Default", self.save_layout_default_requested.emit)
         layout_menu.addAction("Reset Picture Positions", self.reset_pictures_requested.emit)
         layout_menu.addAction("Restore Closed Windows", self.restore_windows_requested.emit)
         layout_menu.addAction("Dock All Windows", self.dock_all_requested.emit)
@@ -154,6 +196,12 @@ class MenuRibbon(QWidget):
         self.loc_text_action.setChecked(True)
         self.loc_text_action.toggled.connect(self.locations_text_toggled.emit)
         view_menu.addAction(self.loc_text_action)
+
+        self.active_party_action = QAction("Show Active Party Members", self)
+        self.active_party_action.setCheckable(True)
+        self.active_party_action.setChecked(True)
+        self.active_party_action.toggled.connect(self.active_party_visibility_toggled.emit)
+        view_menu.addAction(self.active_party_action)
         
         view_menu.addSeparator()
         
@@ -209,12 +257,12 @@ class MenuRibbon(QWidget):
         dungeon_shape_menu.addAction("Triangle", lambda: self.dungeon_shape_requested.emit("triangle"))
         style_menu.addMenu(dungeon_shape_menu)
         
-        # --- Help / About (Right of Custom) ---
-        about_action = self.menu_bar.addAction("About")
-        about_action.triggered.connect(self._show_about)
-        
-        help_action = self.menu_bar.addAction("Help") 
-        help_action.triggered.connect(self._show_help)
+        # --- Help / About ---
+        help_menu = self.menu_bar.addMenu("Help")
+        help_menu.addAction("User Guide", self._show_help)
+        help_menu.addAction("Open Log Folder", self.open_log_folder_requested.emit)
+        help_menu.addSeparator()
+        help_menu.addAction("About", self._show_about)
         
         # --- Auto Checkboxes Panel ---
         self.checkbox_frame = QWidget()

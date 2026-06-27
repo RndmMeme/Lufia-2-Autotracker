@@ -71,8 +71,8 @@ class DataListener(QObject):
                 self.data_received.emit(py_dict)
             else:
                 self.logger.warning(f"Received invalid JSON: {text}")
-        except Exception as e:
-            self.logger.error(f"Error parsing data: {e}")
+        except Exception:
+            self.logger.exception("Error parsing tracker network data")
 
     def _client_disconnected(self, socket):
         self.logger.info("Client disconnected")

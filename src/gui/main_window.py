@@ -10,7 +10,6 @@ from .map_widget import MapWidget
 from .dock_title_bar import DockTitleBar
 from .inventory_widgets import ToolsWidget, ScenarioWidget
 from .menu_ribbon import MenuRibbon
-from utils.constants import STATE_ORDER
 from utils.version import APP_TITLE
 from .widgets.items_widget import ItemsWidget
 from .widgets.characters_widget import CharactersWidget
@@ -69,10 +68,16 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.player_shape_requested.connect(self._on_player_shape_requested)
         self.menu_ribbon.player_size_requested.connect(self.map_widget.set_player_scale)
         self.menu_ribbon.edit_layout_toggled.connect(self._set_edit_mode)
+        self.menu_ribbon.grid_visibility_toggled.connect(self._set_grid_visible)
+        self.menu_ribbon.grid_snap_toggled.connect(self._set_grid_snap)
+        self.menu_ribbon.grid_size_changed.connect(self._set_grid_size)
+        self.menu_ribbon.auto_align_requested.connect(self._auto_align)
+        self.menu_ribbon.open_log_folder_requested.connect(self._open_log_folder)
         self.menu_ribbon.restore_windows_requested.connect(self._restore_closed_windows)
         self.menu_ribbon.dock_all_requested.connect(self._dock_all_windows)
         self.menu_ribbon.icon_adj_toggled.connect(self._toggle_icon_controls)
         self.menu_ribbon.locations_text_toggled.connect(self._toggle_locations_text)
+        self.menu_ribbon.active_party_visibility_toggled.connect(self._toggle_active_party_visibility)
         
         # Custom Styling overrides
         self.menu_ribbon.city_color_requested.connect(self._pick_city_color)
@@ -105,6 +110,9 @@ class MainWindow(QMainWindow):
             self.characters_widget.canvas.set_locations_visible(visible)
         if hasattr(self, 'maiden_widget'):
             self.maiden_widget.set_locations_visible(visible)
+
+    def _toggle_active_party_visibility(self, visible):
+        self.characters_widget.set_active_party_visible(visible)
             
     def _restore_closed_windows(self):
         for dock in self.findChildren(QDockWidget):
@@ -141,6 +149,41 @@ class MainWindow(QMainWindow):
         self.scenario_widget.set_edit_mode(enabled)
         self.characters_widget.set_edit_mode(enabled)
         self.maiden_widget.set_edit_mode(enabled)
+
+    def _positioning_canvases(self):
+        return {
+            "tools": self.tools_widget.grid,
+            "keys": self.scenario_widget.grid,
+            "characters": self.characters_widget.canvas,
+            "maidens": self.maiden_widget,
+        }
+
+    def _set_grid_visible(self, visible: bool):
+        for canvas in self._positioning_canvases().values():
+            canvas.set_grid_visible(visible)
+
+    def _set_grid_snap(self, enabled: bool):
+        for canvas in self._positioning_canvases().values():
+            canvas.set_snap_to_grid(enabled)
+
+    def _set_grid_size(self, size: int):
+        for canvas in self._positioning_canvases().values():
+            canvas.set_grid_size(size)
+
+    def _auto_align(self, canvas_id: str):
+        canvases = self._positioning_canvases()
+        targets = canvases.values() if canvas_id == "all" else [canvases[canvas_id]]
+        for canvas in targets:
+            canvas.auto_align()
+        logging.info("Canvas auto-align complete | target=%s", canvas_id)
+
+    def _open_log_folder(self):
+        try:
+            import os
+            from utils.logging_config import get_log_directory
+            os.startfile(get_log_directory())
+        except Exception:
+            logging.exception("Failed to open log folder")
         
     def _handle_reset(self):
         self.state_manager.reset_state()
@@ -151,8 +194,8 @@ class MainWindow(QMainWindow):
         if path:
             try:
                 self.state_manager.save_state(path)
-            except Exception as e:
-                logging.error(f"Save Failed: {e}")
+            except Exception:
+                logging.exception("Tracker state save failed | path=%s", path)
 
     def _handle_load(self):
         from PyQt6.QtWidgets import QFileDialog
@@ -161,8 +204,8 @@ class MainWindow(QMainWindow):
             try:
                 self.state_manager.load_state(path)
                 self._refresh_all()
-            except Exception as e:
-                logging.error(f"Load Failed: {e}")
+            except Exception:
+                logging.exception("Tracker state load failed | path=%s", path)
 
     def _handle_auto_toggle(self, active: bool):
         """
@@ -181,11 +224,15 @@ class MainWindow(QMainWindow):
         Sync: Fetch snapshot.
         If Auto is OFF: Start Helper momentarily.
         """
-        print(f"Sync Requested: {category}")
-        # Simplistic implementation: Enable auto tracking if not active
-        if not self.state_manager.helper.running:
-             self.state_manager.toggle_auto_tracking(True)
-             self._is_syncing = True
+        logging.info("Sync requested | category=%s | helper_running=%s", category, self.state_manager.helper.running)
+        self.menu_ribbon.set_scanning_status(True)
+        if self.state_manager.helper.running:
+            self.state_manager.request_rescan()
+            return
+
+        self._is_syncing = True
+        self._sync_category = category
+        self.state_manager.toggle_auto_tracking(True)
 
     def _pick_city_color(self):
         from PyQt6.QtWidgets import QColorDialog
@@ -240,20 +287,23 @@ class MainWindow(QMainWindow):
             # Hide scanning indicator
             self.menu_ribbon.set_scanning_status(False)
             
-            # If we were doing a one-shot sync, stop now.
-            if getattr(self, '_is_syncing', False):
+            # A one-shot sync stops only after a complete helper snapshot.
+            valid_snapshot = (
+                "error" not in payload and
+                payload.get("inventory") is not None and
+                bool(payload.get("characters"))
+            )
+            if getattr(self, '_is_syncing', False) and valid_snapshot:
                 self.state_manager.toggle_auto_tracking(False)
                 self._is_syncing = False
-                print("Sync Snapshot Complete")
+                logging.info("Sync snapshot complete | category=%s", getattr(self, "_sync_category", "all"))
             
-            # Just refresh the UI to show new states
-            self.state_manager.process_auto_update(payload)
+            # StateManager processes this signal first; this slot refreshes the UI once.
             self._refresh_all()
             # Ensure sprite image is up to date if reusing "sprite" mode
             self._update_player_sprite_if_active()
-        except Exception as e:
-            import traceback
-            logging.error(f"CRASH in UI Thread (_on_auto_update_received):\\n{traceback.format_exc()}")
+        except Exception:
+            logging.exception("Auto-update UI refresh failed")
 
     def _on_tracker_status_changed(self, status):
         """Display structured helper discovery and attachment status."""
@@ -402,9 +452,6 @@ class MainWindow(QMainWindow):
         # Reset Signal
         self.state_manager.reset_occurred.connect(self._on_reset_occurred)
         
-        # Sync Signal from Menu
-        self.menu_ribbon.sync_requested.connect(self._on_sync_requested)
-        
         # New Signals (v1.4 Refinements)
         self.menu_ribbon.sprite_visibility_toggled.connect(self.map_widget.set_sprites_visibility)
         self.state_manager.shop_items_changed.connect(lambda _: self.items_widget.refresh_from_state())
@@ -436,14 +483,6 @@ class MainWindow(QMainWindow):
         self._refresh_all()
         logging.info("MainWindow: Reset UI elements.")
 
-    def _on_sync_requested(self, category):
-        """Handle Sync request from menu (All, Tools, etc)."""
-        logging.info(f"MainWindow: Sync requested for category: {category}")
-        self.menu_ribbon.set_scanning_status(True)
-        self.state_manager.request_rescan()
-        # If we really want a 'fresh' scan from Helper, we'd need to send a command TO the helper.
-        # But usually 'Sync' means 'I updated something manually or it feels stuck, refresh logic'.
-        
     def _refresh_all(self):
         """Re-runs logic engine and pushes updates."""
         # Get Accessibility Map
@@ -481,22 +520,10 @@ class MainWindow(QMainWindow):
             self.map_widget.update_dot_tooltip(name, tooltip_text)
 
     def _handle_location_click(self, name):
-        """User clicked a dot: Cycle the state (Manual Override)."""
-        current_state = self.state_manager.locations.get(name)
-        
-        cycle_order = list(STATE_ORDER)
+        """Toggle dungeon completion while leaving accessibility logic-derived."""
         if name in self.data_loader.get_cities():
-             cycle_order = ["city"]
-        else:
-             cycle_order = ["not_accessible", "fully_accessible", "cleared"]
-
-        if not current_state or current_state not in cycle_order:
-             new_state = cycle_order[0]
-        else:
-             idx = cycle_order.index(current_state)
-             new_state = cycle_order[(idx + 1) % len(cycle_order)]
-                
-        self.state_manager.set_manual_location_state(name, new_state)
+            return
+        self.state_manager.toggle_manual_location_cleared(name)
 
     def _handle_location_right_click(self, name):
         """Show Context Menu."""
@@ -616,9 +643,13 @@ class MainWindow(QMainWindow):
              settings.setValue("playerColor", getattr(self, "_player_color", ""))
              settings.setValue("playerShape", getattr(self.map_widget, "_player_shape", "triangle"))
              settings.setValue("playerScale", getattr(self.map_widget, "_player_scale", 1.0))
+             settings.setValue("showPlacementGrid", self.menu_ribbon.show_grid_action.isChecked())
+             settings.setValue("snapToPlacementGrid", self.menu_ribbon.snap_grid_action.isChecked())
+             settings.setValue("placementGridSize", self._positioning_canvases()["tools"].grid_size)
+             settings.setValue("showActivePartyMembers", self.menu_ribbon.active_party_action.isChecked())
 
-        except Exception as e:
-             logging.error(f"Failed to save settings: {e}")
+        except Exception:
+             logging.exception("Failed to save window settings")
         
         # Shutdown logic
         if hasattr(self, 'auto_tracker_thread') and self.auto_tracker_thread and self.auto_tracker_thread.isRunning():
@@ -666,6 +697,21 @@ class MainWindow(QMainWindow):
         if p_scale:
             self.map_widget.set_player_scale(p_scale)
 
+        grid_size = settings.value("placementGridSize", 10, type=int)
+        for action in self.menu_ribbon.grid_size_group.actions():
+            if action.text() == f"{grid_size} px":
+                action.setChecked(True)
+                break
+        self.menu_ribbon.show_grid_action.setChecked(
+            settings.value("showPlacementGrid", False, type=bool)
+        )
+        self.menu_ribbon.snap_grid_action.setChecked(
+            settings.value("snapToPlacementGrid", False, type=bool)
+        )
+        self.menu_ribbon.active_party_action.setChecked(
+            settings.value("showActivePartyMembers", True, type=bool)
+        )
+
 
 class ScalableView(QGraphicsView):
     def __init__(self, widget):
@@ -712,6 +758,7 @@ class PersistentDockWidget(QDockWidget):
         # Set custom title bar for "Pin" functionality
         self.title_bar = DockTitleBar(title, self)
         self.setTitleBarWidget(self.title_bar)
+        self.topLevelChanged.connect(self._normalize_floating_window)
         
         self.current_font_size = 11 # Default
         self.current_icon_scale = 1.0 # Default
@@ -770,6 +817,47 @@ class PersistentDockWidget(QDockWidget):
              widget.set_icon_scale(self.current_icon_scale)
              if isinstance(self.widget(), ScalableView):
                  self.widget().update_scale()
+
+    def _normalize_floating_window(self, is_floating: bool):
+        """Use a normal window for floating docks instead of an owned tool window."""
+        if not is_floating:
+            return
+        QTimer.singleShot(0, self._apply_normal_floating_flags)
+
+    def _apply_normal_floating_flags(self):
+        if not self.isFloating():
+            return
+        flags = self.windowFlags()
+        flags &= ~Qt.WindowType.WindowType_Mask
+        flags |= Qt.WindowType.Window
+        flags &= ~Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        self.show()
+        QTimer.singleShot(0, self._clear_native_window_owner)
+
+    def _clear_native_window_owner(self):
+        """On Windows, detach the native owner so the dock can move behind the main window."""
+        if not self.isFloating():
+            return
+        try:
+            import ctypes
+            import sys
+            if sys.platform != "win32":
+                return
+            set_owner = ctypes.windll.user32.SetWindowLongPtrW
+            set_owner.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p)
+            set_owner.restype = ctypes.c_void_p
+            ctypes.set_last_error(0)
+            previous_owner = set_owner(int(self.winId()), -8, 0)  # GWL_HWNDPARENT
+            error = ctypes.get_last_error()
+            if previous_owner == 0 and error:
+                logging.warning(
+                    "Could not clear floating-window owner | dock=%s | win32Error=%s",
+                    self.objectName() or self.windowTitle(),
+                    error,
+                )
+        except Exception:
+            logging.exception("Failed to normalize floating-window ownership")
 
     def closeEvent(self, event):
         # Allow global app termination to close floating docks

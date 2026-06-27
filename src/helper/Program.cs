@@ -30,7 +30,7 @@ namespace Lufia2AutoTracker.Helper
                 return SelfTest.Run(dataDirectory);
             }
 
-            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.8");
+            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.9");
             Console.WriteLine($"[Config] Data directory: {dataDirectory ?? "auto-detect"}");
 
             LoadDungeons(dataDirectory, "dungeon_flags_snes9x.json");
@@ -128,6 +128,10 @@ namespace Lufia2AutoTracker.Helper
                         if (!reader.LastRequiredReadSucceeded)
                         {
                             failedReadCycles++;
+                            Console.WriteLine(
+                                $"[Warning] [StateRead] rejected incomplete snapshot " +
+                                $"cycle={failedReadCycles}/3 process={process.ProcessName} pid={process.Id} " +
+                                $"profile={currentProfile?.Name}");
                             if (failedReadCycles >= 3)
                             {
                                 Console.WriteLine("[Tracker] Required memory reads failed repeatedly; detaching for a fresh scan.");
@@ -137,8 +141,8 @@ namespace Lufia2AutoTracker.Helper
                                 reader = null;
                                 currentProfile = null;
                                 lastState = null;
-                                continue;
                             }
+                            continue;
                         }
                         else
                         {
@@ -365,7 +369,13 @@ namespace Lufia2AutoTracker.Helper
         private static bool HasExited(Process process)
         {
             try { return process.HasExited; }
-            catch { return true; }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"[Warning] [Process] exit-state query failed " +
+                    $"exception={ex.GetType().Name} message={ex.Message}");
+                return true;
+            }
         }
 
         private static bool CoreStateEquals(GameState current, GameState? previous)

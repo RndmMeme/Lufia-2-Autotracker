@@ -74,7 +74,15 @@ namespace Lufia2AutoTracker.Helper.Core
                             CommandReceived?.Invoke(cmd);
                         }
                     }
-                    catch { /* Connection reset handled by sender */ }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(
+                            $"[Warning] [TrackerClient] listener stopped " +
+                            $"exception={ex.GetType().Name} message={ex.Message}");
+                        _client?.Close();
+                        _client = null;
+                        _stream = null;
+                    }
                 }
                 Thread.Sleep(500);
             }
