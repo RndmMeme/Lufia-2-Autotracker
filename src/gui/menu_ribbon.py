@@ -35,11 +35,15 @@ class MenuRibbon(QWidget):
     grid_visibility_toggled = pyqtSignal(bool)
     grid_snap_toggled = pyqtSignal(bool)
     grid_size_changed = pyqtSignal(int)
+    canvas_grid_visibility_toggled = pyqtSignal(bool)
+    canvas_grid_snap_toggled = pyqtSignal(bool)
+    canvas_grid_size_changed = pyqtSignal(int)
     auto_align_requested = pyqtSignal(str)
     open_log_folder_requested = pyqtSignal()
     
     restore_windows_requested = pyqtSignal()
     dock_all_requested = pyqtSignal()
+    reset_window_layout_requested = pyqtSignal()
     icon_adj_toggled = pyqtSignal(bool)
     locations_text_toggled = pyqtSignal(bool)
     active_party_visibility_toggled = pyqtSignal(bool)
@@ -132,23 +136,24 @@ class MenuRibbon(QWidget):
 
         # --- Layout (Middle) ---
         layout_menu = self.menu_bar.addMenu("Layout")
-        
-        self.edit_layout_action = QAction("Edit Layout", self)
+        icon_placement_menu = QMenu("Icon Placement", self)
+
+        self.edit_layout_action = QAction("Edit Icon Positions", self)
         self.edit_layout_action.setCheckable(True)
         self.edit_layout_action.toggled.connect(self.edit_layout_toggled.emit)
-        layout_menu.addAction(self.edit_layout_action)
+        icon_placement_menu.addAction(self.edit_layout_action)
 
-        self.show_grid_action = QAction("Show Placement Grid", self)
+        self.show_grid_action = QAction("Show Picture Placement Grid", self)
         self.show_grid_action.setCheckable(True)
         self.show_grid_action.toggled.connect(self.grid_visibility_toggled.emit)
-        layout_menu.addAction(self.show_grid_action)
+        icon_placement_menu.addAction(self.show_grid_action)
 
-        self.snap_grid_action = QAction("Snap to Grid", self)
+        self.snap_grid_action = QAction("Snap Pictures to Grid", self)
         self.snap_grid_action.setCheckable(True)
         self.snap_grid_action.toggled.connect(self.grid_snap_toggled.emit)
-        layout_menu.addAction(self.snap_grid_action)
+        icon_placement_menu.addAction(self.snap_grid_action)
 
-        grid_size_menu = QMenu("Grid Size", self)
+        grid_size_menu = QMenu("Picture Grid Size", self)
         self.grid_size_group = QActionGroup(self)
         self.grid_size_group.setExclusive(True)
         for size in (5, 10, 20, 25):
@@ -160,7 +165,34 @@ class MenuRibbon(QWidget):
             )
             self.grid_size_group.addAction(action)
             grid_size_menu.addAction(action)
-        layout_menu.addMenu(grid_size_menu)
+        icon_placement_menu.addMenu(grid_size_menu)
+
+        panel_arrangement_menu = QMenu("Panel Arrangement", self)
+        canvas_grid_menu = QMenu("Canvas Grid", self)
+        self.show_canvas_grid_action = QAction("Show Canvas Grid", self)
+        self.show_canvas_grid_action.setCheckable(True)
+        self.show_canvas_grid_action.toggled.connect(self.canvas_grid_visibility_toggled.emit)
+        canvas_grid_menu.addAction(self.show_canvas_grid_action)
+
+        self.snap_canvas_grid_action = QAction("Snap Panels to Canvas Grid", self)
+        self.snap_canvas_grid_action.setCheckable(True)
+        self.snap_canvas_grid_action.toggled.connect(self.canvas_grid_snap_toggled.emit)
+        canvas_grid_menu.addAction(self.snap_canvas_grid_action)
+
+        canvas_size_menu = QMenu("Canvas Grid Size", self)
+        self.canvas_grid_size_group = QActionGroup(self)
+        self.canvas_grid_size_group.setExclusive(True)
+        for size in (5, 10, 20, 25):
+            action = QAction(f"{size} px", self)
+            action.setCheckable(True)
+            action.setChecked(size == 10)
+            action.toggled.connect(
+                lambda checked, value=size: self.canvas_grid_size_changed.emit(value) if checked else None
+            )
+            self.canvas_grid_size_group.addAction(action)
+            canvas_size_menu.addAction(action)
+        canvas_grid_menu.addMenu(canvas_size_menu)
+        panel_arrangement_menu.addMenu(canvas_grid_menu)
 
         align_menu = QMenu("Auto-align", self)
         for label, canvas_id in (
@@ -171,39 +203,45 @@ class MenuRibbon(QWidget):
             ("Maidens", "maidens"),
         ):
             align_menu.addAction(label, lambda checked=False, value=canvas_id: self.auto_align_requested.emit(value))
-        layout_menu.addMenu(align_menu)
-        
-        layout_menu.addAction("Save Current as Default", self.save_layout_default_requested.emit)
-        layout_menu.addAction("Reset Picture Positions", self.reset_pictures_requested.emit)
-        layout_menu.addAction("Restore Closed Windows", self.restore_windows_requested.emit)
-        layout_menu.addAction("Dock All Windows", self.dock_all_requested.emit)
+        icon_placement_menu.addMenu(align_menu)
+        icon_placement_menu.addSeparator()
+        icon_placement_menu.addAction("Save Icon Positions as Default", self.save_layout_default_requested.emit)
+        icon_placement_menu.addAction("Reset Icon Positions", self.reset_pictures_requested.emit)
+        layout_menu.addMenu(icon_placement_menu)
+
+        panel_arrangement_menu.addSeparator()
+        panel_arrangement_menu.addAction("Restore Closed Panels", self.restore_windows_requested.emit)
+        panel_arrangement_menu.addAction("Snap Back Detached Panels", self.dock_all_requested.emit)
+        panel_arrangement_menu.addAction("Reset Panel Arrangement", self.reset_window_layout_requested.emit)
+        layout_menu.addMenu(panel_arrangement_menu)
 
         # --- View (Middle) ---
         view_menu = self.menu_bar.addMenu("View")
-        
+        panel_controls_menu = QMenu("Panel Controls", self)
         self.font_adj_action = QAction("Show Font Controls", self)
         self.font_adj_action.setCheckable(True)
         self.font_adj_action.toggled.connect(self.font_adj_toggled.emit)
-        view_menu.addAction(self.font_adj_action)
+        panel_controls_menu.addAction(self.font_adj_action)
         
         self.icon_adj_action = QAction("Show Icon Size Controls", self)
         self.icon_adj_action.setCheckable(True)
         self.icon_adj_action.toggled.connect(self.icon_adj_toggled.emit)
-        view_menu.addAction(self.icon_adj_action)
-        
-        self.loc_text_action = QAction("Show Locations Text", self)
+        panel_controls_menu.addAction(self.icon_adj_action)
+        view_menu.addMenu(panel_controls_menu)
+
+        character_display_menu = QMenu("Character Display", self)
+        self.loc_text_action = QAction("Show Location Notes", self)
         self.loc_text_action.setCheckable(True)
         self.loc_text_action.setChecked(True)
         self.loc_text_action.toggled.connect(self.locations_text_toggled.emit)
-        view_menu.addAction(self.loc_text_action)
+        character_display_menu.addAction(self.loc_text_action)
 
         self.active_party_action = QAction("Show Active Party Members", self)
         self.active_party_action.setCheckable(True)
         self.active_party_action.setChecked(True)
         self.active_party_action.toggled.connect(self.active_party_visibility_toggled.emit)
-        view_menu.addAction(self.active_party_action)
-        
-        view_menu.addSeparator()
+        character_display_menu.addAction(self.active_party_action)
+        view_menu.addMenu(character_display_menu)
         
         sprite_menu = QMenu("Map Sprites", self)
         self.sprite_actions = {}
@@ -221,41 +259,44 @@ class MenuRibbon(QWidget):
         
         # --- Style (Middle) ---
         style_menu = self.menu_bar.addMenu("Style")
-        
-        style_menu.addAction("Header Color", self.header_color_requested.emit)
-        style_menu.addSeparator()
-        
-        style_menu.addAction("Player Color", self.player_color_requested.emit)
-        shape_menu = QMenu("Player Shape", self)
+
+        panel_appearance_menu = QMenu("Panel Appearance", self)
+        panel_appearance_menu.addAction("Header Color", self.header_color_requested.emit)
+        style_menu.addMenu(panel_appearance_menu)
+
+        player_marker_menu = QMenu("Player Marker", self)
+        player_marker_menu.addAction("Color", self.player_color_requested.emit)
+        shape_menu = QMenu("Shape", self)
         shape_menu.addAction("Triangle", lambda: self.player_shape_requested.emit("triangle"))
         shape_menu.addAction("Rhombus", lambda: self.player_shape_requested.emit("rhombus"))
         shape_menu.addAction("Square", lambda: self.player_shape_requested.emit("square"))
         shape_menu.addAction("Active Sprite", lambda: self.player_shape_requested.emit("sprite"))
-        style_menu.addMenu(shape_menu)
+        player_marker_menu.addMenu(shape_menu)
         
-        size_menu = QMenu("Player Size", self)
+        size_menu = QMenu("Size", self)
         size_menu.addAction("Normal (1x)", lambda: self.player_size_requested.emit(1.0))
         size_menu.addAction("2x", lambda: self.player_size_requested.emit(2.0))
         size_menu.addAction("3x", lambda: self.player_size_requested.emit(3.0))
         size_menu.addAction("4x", lambda: self.player_size_requested.emit(4.0))
-        style_menu.addMenu(size_menu)
-        
-        style_menu.addSeparator()
-        
-        style_menu.addAction("City Color", self.city_color_requested.emit)
+        player_marker_menu.addMenu(size_menu)
+        style_menu.addMenu(player_marker_menu)
+
+        map_locations_menu = QMenu("Map Locations", self)
+        map_locations_menu.addAction("City Color", self.city_color_requested.emit)
         city_shape_menu = QMenu("City Shape", self)
         city_shape_menu.addAction("Circle", lambda: self.city_shape_requested.emit("circle"))
         city_shape_menu.addAction("Square", lambda: self.city_shape_requested.emit("square"))
         city_shape_menu.addAction("Rhombus", lambda: self.city_shape_requested.emit("rhombus"))
         city_shape_menu.addAction("Triangle", lambda: self.city_shape_requested.emit("triangle"))
-        style_menu.addMenu(city_shape_menu)
+        map_locations_menu.addMenu(city_shape_menu)
         
         dungeon_shape_menu = QMenu("Dungeon Shape", self)
         dungeon_shape_menu.addAction("Circle", lambda: self.dungeon_shape_requested.emit("circle"))
         dungeon_shape_menu.addAction("Square", lambda: self.dungeon_shape_requested.emit("square"))
         dungeon_shape_menu.addAction("Rhombus", lambda: self.dungeon_shape_requested.emit("rhombus"))
         dungeon_shape_menu.addAction("Triangle", lambda: self.dungeon_shape_requested.emit("triangle"))
-        style_menu.addMenu(dungeon_shape_menu)
+        map_locations_menu.addMenu(dungeon_shape_menu)
+        style_menu.addMenu(map_locations_menu)
         
         # --- Help / About ---
         help_menu = self.menu_bar.addMenu("Help")

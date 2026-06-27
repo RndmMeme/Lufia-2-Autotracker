@@ -1,6 +1,8 @@
-from PyQt6.QtWidgets import QMainWindow, QDockWidget, QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QMenu, QToolBar, QMessageBox, QFileDialog, QInputDialog, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QSettings
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QMenu, QToolBar, QMessageBox, QFileDialog, QInputDialog
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize, QSettings, QRect, QPoint
+from PyQt6.QtGui import QColor, QPainter, QPen
 import logging
+import os
 
 from core.state_manager import StateManager
 from core.data_loader import DataLoader
@@ -17,6 +19,80 @@ from .widgets.maiden_widget import MaidenWidget
 from .widgets.hint_widget import HintWidget
 from .dialogs.item_search_dialog import ItemSearchDialog
 from PyQt6.QtWidgets import QMenu
+
+
+def tracker_settings():
+    """Use normal registry settings, with an explicit file override for isolated tests."""
+    override = os.environ.get("LUFIA2_TRACKER_SETTINGS_FILE")
+    if override:
+        return QSettings(override, QSettings.Format.IniFormat)
+    return QSettings("Lufia2Tracker", "MainWindow")
+
+
+class PanelWorkspace(QWidget):
+    """Free panel surface with an optional, independently configured grid."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._grid_visible = False
+        self._snap_to_grid = False
+        self._grid_size = 10
+
+    @property
+    def grid_size(self):
+        return self._grid_size
+
+    @property
+    def snap_to_grid(self):
+        return self._snap_to_grid
+
+    def set_grid_visible(self, visible):
+        self._grid_visible = bool(visible)
+        self.update()
+
+    def set_snap_to_grid(self, enabled):
+        self._snap_to_grid = bool(enabled)
+
+    def set_grid_size(self, size):
+        self._grid_size = max(5, int(size))
+        self.update()
+
+    def snap_value(self, value):
+        grid = self._grid_size
+        return max(0, ((int(value) + grid // 2) // grid) * grid)
+
+    def snap_geometry(self, geometry, resize_edges=None):
+        if not self._snap_to_grid:
+            return QRect(geometry)
+        rect = QRect(geometry)
+        edges = set(resize_edges or ())
+        if not edges:
+            rect.moveTopLeft(QPoint(self.snap_value(rect.x()), self.snap_value(rect.y())))
+            return rect
+
+        if "left" in edges:
+            rect.setLeft(self.snap_value(rect.left()))
+        if "right" in edges:
+            rect.setRight(self.snap_value(rect.right() + 1) - 1)
+        if "top" in edges:
+            rect.setTop(self.snap_value(rect.top()))
+        if "bottom" in edges:
+            rect.setBottom(self.snap_value(rect.bottom() + 1) - 1)
+        return rect
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if not self._grid_visible:
+            return
+        painter = QPainter(self)
+        pen = QPen(QColor(255, 255, 255, 30))
+        pen.setWidth(1)
+        painter.setPen(pen)
+        for x in range(0, self.width(), self._grid_size):
+            painter.drawLine(x, 0, x, self.height())
+        for y in range(0, self.height(), self._grid_size):
+            painter.drawLine(0, y, self.width(), y)
+        painter.end()
 
 class MainWindow(QMainWindow):
     def __init__(self, state_manager, data_loader, logic_engine):
@@ -53,7 +129,14 @@ class MainWindow(QMainWindow):
 
     def _setup_ui(self):
         """Initializes the main UI layout."""
-        # For now, just a wrapper around the docking setup
+        self.panel_workspace = PanelWorkspace(self)
+        self.panel_workspace.setObjectName("panel_workspace")
+        self.panel_workspace.setMinimumSize(1020, 720)
+        self.workspace_scroll = QScrollArea(self)
+        self.workspace_scroll.setWidgetResizable(True)
+        self.workspace_scroll.setWidget(self.panel_workspace)
+        self.workspace_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.setCentralWidget(self.workspace_scroll)
         self._setup_docking_ui()
 
     def _connect_menu_signals(self):
@@ -67,14 +150,18 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.player_color_requested.connect(self._pick_player_color)
         self.menu_ribbon.player_shape_requested.connect(self._on_player_shape_requested)
         self.menu_ribbon.player_size_requested.connect(self.map_widget.set_player_scale)
-        self.menu_ribbon.edit_layout_toggled.connect(self._set_edit_mode)
+        self.menu_ribbon.edit_layout_toggled.connect(self._set_icon_edit_mode)
         self.menu_ribbon.grid_visibility_toggled.connect(self._set_grid_visible)
         self.menu_ribbon.grid_snap_toggled.connect(self._set_grid_snap)
         self.menu_ribbon.grid_size_changed.connect(self._set_grid_size)
+        self.menu_ribbon.canvas_grid_visibility_toggled.connect(self.panel_workspace.set_grid_visible)
+        self.menu_ribbon.canvas_grid_snap_toggled.connect(self.panel_workspace.set_snap_to_grid)
+        self.menu_ribbon.canvas_grid_size_changed.connect(self.panel_workspace.set_grid_size)
         self.menu_ribbon.auto_align_requested.connect(self._auto_align)
         self.menu_ribbon.open_log_folder_requested.connect(self._open_log_folder)
         self.menu_ribbon.restore_windows_requested.connect(self._restore_closed_windows)
         self.menu_ribbon.dock_all_requested.connect(self._dock_all_windows)
+        self.menu_ribbon.reset_window_layout_requested.connect(self._reset_window_layout)
         self.menu_ribbon.icon_adj_toggled.connect(self._toggle_icon_controls)
         self.menu_ribbon.locations_text_toggled.connect(self._toggle_locations_text)
         self.menu_ribbon.active_party_visibility_toggled.connect(self._toggle_active_party_visibility)
@@ -97,12 +184,11 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.load_requested.connect(self._handle_load)
 
     def _toggle_font_controls(self, visible):
-        # Iterate over all dock widgets
-        for dock in self.findChildren(PersistentDockWidget):
+        for dock in self._panels:
             dock.title_bar.set_font_controls_visible(visible)
 
     def _toggle_icon_controls(self, visible):
-        for dock in self.findChildren(PersistentDockWidget):
+        for dock in self._panels:
             dock.title_bar.set_icon_controls_visible(visible)
             
     def _toggle_locations_text(self, visible):
@@ -115,16 +201,21 @@ class MainWindow(QMainWindow):
         self.characters_widget.set_active_party_visible(visible)
             
     def _restore_closed_windows(self):
-        for dock in self.findChildren(QDockWidget):
+        for dock in self._panels:
             if dock.isHidden():
                 dock.show()
 
     def _dock_all_windows(self):
-        for dock in self.findChildren(QDockWidget):
+        for dock in self._panels:
             if dock.isFloating():
                 dock.setFloating(False)
             if dock.isHidden():
                 dock.show()
+
+    def _reset_window_layout(self):
+        """Restore the independently resizable factory panel arrangement."""
+        self._apply_default_dock_layout()
+        logging.info("Default window layout restored")
 
     def _pick_header_color(self):
         from PyQt6.QtWidgets import QColorDialog
@@ -132,7 +223,7 @@ class MainWindow(QMainWindow):
         if color.isValid():
             hex_color = color.name()
             self._header_color = hex_color # Store for persistence
-            for dock in self.findChildren(PersistentDockWidget):
+            for dock in self._panels:
                 dock.title_bar.set_header_color(hex_color)
 
     def _pick_player_color(self):
@@ -143,8 +234,8 @@ class MainWindow(QMainWindow):
             self._player_color = hex_color # Store for persistence
             self.map_widget.set_player_arrow_color(hex_color)
 
-    def _set_edit_mode(self, enabled: bool):
-        """Toggles 'Edit Layout' mode for draggable widgets."""
+    def _set_icon_edit_mode(self, enabled: bool):
+        """Allow icon movement inside panels; panel movement is always separate."""
         self.tools_widget.set_edit_mode(enabled)
         self.scenario_widget.set_edit_mode(enabled)
         self.characters_widget.set_edit_mode(enabled)
@@ -169,6 +260,13 @@ class MainWindow(QMainWindow):
     def _set_grid_size(self, size: int):
         for canvas in self._positioning_canvases().values():
             canvas.set_grid_size(size)
+
+    def _refresh_picture_positions(self):
+        """Reapply saved/default positions using the current scale and grid."""
+        self.characters_widget.canvas._reflow_grid()
+        self.maiden_widget.update_positions()
+        self.tools_widget.grid.update_positions()
+        self.scenario_widget.grid.update_positions()
 
     def _auto_align(self, canvas_id: str):
         canvases = self._positioning_canvases()
@@ -257,14 +355,7 @@ class MainWindow(QMainWindow):
 
     def _on_reset_pictures_requested(self):
         self.layout_manager.reset_layout()
-        if hasattr(self, 'characters_widget'):
-            self.characters_widget.canvas._reflow_grid()
-        if hasattr(self, 'maiden_widget'):
-            self.maiden_widget.update_positions()
-        if hasattr(self, 'tools_widget'):
-            self.tools_widget.grid.update_positions()
-        if hasattr(self, 'scenario_widget'):
-            self.scenario_widget.grid.update_positions()
+        self._refresh_picture_positions()
 
     def _on_player_shape_requested(self, shape):
         if shape == "sprite":
@@ -313,115 +404,79 @@ class MainWindow(QMainWindow):
         )
 
     def _setup_docking_ui(self):
-        # Allow nested docks
-        self.setDockOptions(QMainWindow.DockOption.AllowNestedDocks | QMainWindow.DockOption.AnimatedDocks)
-
-        # --- Items Dock (Left, Top) ---
-        self.items_dock = PersistentDockWidget("Items / Spells", self, scale_contents=False)
+        # Each panel is an absolute child of the workspace. No splitter owns a
+        # neighbour's border, so every width and height is independent.
+        self.items_dock = PersistentDockWidget("Items / Spells", self.panel_workspace, scale_contents=False)
         self.items_dock.setObjectName("items_dock")
         self.items_widget = ItemsWidget(self.state_manager)
         self.items_dock.setWidget(self.items_widget)
         self.items_dock.setMinimumSize(100, 100)
-        self.items_dock.setMaximumWidth(350) # Prevent taking too much horizontal space
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.items_dock)
 
-        # --- Hints Dock (Left, Bottom) ---
-        self.hints_dock = PersistentDockWidget("Hints", self, scale_contents=False)
+        self.hints_dock = PersistentDockWidget("Hints", self.panel_workspace, scale_contents=False)
         self.hints_dock.setObjectName("hints_dock")
         self.hint_widget = HintWidget()
         self.hints_dock.setWidget(self.hint_widget)
         self.hints_dock.setMinimumSize(100, 100)
-        self.hints_dock.setMaximumWidth(350) # Prevent taking too much horizontal space
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.hints_dock)
         
-        # --- Characters Dock (Top Right for T-Shape) ---
-        self.chars_dock = PersistentDockWidget("Characters", self)
+        self.chars_dock = PersistentDockWidget("Characters", self.panel_workspace)
         self.chars_dock.setObjectName("chars_dock")
         self.characters_widget = CharactersWidget(self.data_loader, self.state_manager, self.layout_manager)
         self.chars_dock.setWidget(self.characters_widget)
         self.chars_dock.setMinimumSize(100, 150)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.chars_dock)
         
-        # --- Tools Dock ---
-        self.tools_dock = PersistentDockWidget("Tools", self, scale_contents=False)
+        self.tools_dock = PersistentDockWidget("Tools", self.panel_workspace, scale_contents=False)
         self.tools_dock.setObjectName("tools_dock")
         self.tools_widget = ToolsWidget(self.data_loader, self.layout_manager)
         self.tools_dock.setWidget(self.tools_widget)
         self.tools_dock.setMinimumSize(100, 60)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.tools_dock)
 
-        # --- Maidens Dock ---
-        self.maidens_dock = PersistentDockWidget("Maidens", self)
+        self.maidens_dock = PersistentDockWidget("Maidens", self.panel_workspace)
         self.maidens_dock.setObjectName("maidens_dock")
         self.maiden_widget = MaidenWidget(self.data_loader, self.state_manager, self.layout_manager)
         self.maidens_dock.setWidget(self.maiden_widget)
         self.maidens_dock.setMinimumSize(100, 60)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.maidens_dock)
         
-        # --- Keys Dock ---
-        self.scenario_dock = PersistentDockWidget("Keys", self, scale_contents=False)
+        self.scenario_dock = PersistentDockWidget("Keys", self.panel_workspace, scale_contents=False)
         self.scenario_dock.setObjectName("scenario_dock")
         self.scenario_widget = ScenarioWidget(self.data_loader, self.layout_manager)
         self.scenario_dock.setWidget(self.scenario_widget)
         self.scenario_dock.setMinimumSize(100, 80)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.scenario_dock)
         
-        # --- Map Dock (Far Right) ---
-        self.map_dock = PersistentDockWidget("World Map", self, scale_contents=False)
+        self.map_dock = PersistentDockWidget("World Map", self.panel_workspace, scale_contents=False)
         self.map_dock.setObjectName("map_dock")
         self.map_widget = MapWidget(self.data_loader)
         self.map_dock.setWidget(self.map_widget)
         self.map_dock.setMinimumSize(200, 200)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.map_dock)
-        
-        # --- Layout Construction (T-Shape) ---
-        
-        # 1. Left Area: Items / Hints
-        self.splitDockWidget(self.items_dock, self.hints_dock, Qt.Orientation.Vertical)
-        
-        # 2. Right Area T-Shape:
-        # Chars occupies the Top sector.
-        # Tools/Maidens/Keys occupies Bottom-Left.
-        # Map occupies Bottom-Right.
-        
-        # Split Chars (which is on Right) with Tools (Vertical) -> Chars on Top, Tools on Bottom.
-        self.splitDockWidget(self.chars_dock, self.tools_dock, Qt.Orientation.Vertical)
-        
-        # Split Tools with Map (Horizontal) -> Tools Left, Map Right.
-        self.splitDockWidget(self.tools_dock, self.map_dock, Qt.Orientation.Horizontal)
-        
-        # Stack Maidens and Keys under Tools (Vertical split of Tools)
-        self.splitDockWidget(self.tools_dock, self.maidens_dock, Qt.Orientation.Vertical)
-        self.splitDockWidget(self.maidens_dock, self.scenario_dock, Qt.Orientation.Vertical)
-        
-        # --- Resizing ---
-        # 1. Bottom Section Horizontal Split (Tools etc vs Map)
-        self.resizeDocks(
-            [self.tools_dock, self.map_dock],
-            [200, 500], # Prefer Map wider
-            Qt.Orientation.Horizontal
-        )
-        
-        # 2. Right Side Vertical Split (Chars vs Bottom Section)
-        self.resizeDocks(
-            [self.chars_dock, self.tools_dock], 
-            [250, 450],
-            Qt.Orientation.Vertical
-        )
-        
-        # --- Fluidity Policies ---
-        from PyQt6.QtWidgets import QSizePolicy
-        for dock in [self.items_dock, self.hints_dock, self.chars_dock, self.tools_dock, 
-                     self.maidens_dock, self.scenario_dock, self.map_dock]:
-             policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-             policy.setVerticalStretch(1)
-             policy.setHorizontalStretch(1)
-             dock.setSizePolicy(policy)
 
-        # Map Stretch
-        self.map_dock.sizePolicy().setHorizontalStretch(3)
-        # Chars shrinking logic
-        self.characters_widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
+        self._panels = [
+            self.items_dock, self.hints_dock, self.chars_dock, self.tools_dock,
+            self.maidens_dock, self.scenario_dock, self.map_dock,
+        ]
+
+        self._apply_default_dock_layout()
+
+    def _apply_default_dock_layout(self):
+        """Place independent panels with gaps instead of shared splitters."""
+        for dock in self._panels:
+            if dock.isFloating():
+                dock.setFloating(False)
+            dock.show()
+        defaults = {
+            self.items_dock: QRect(0, 0, 255, 260),
+            self.hints_dock: QRect(0, 265, 255, 455),
+            self.chars_dock: QRect(260, 0, 760, 220),
+            self.tools_dock: QRect(260, 225, 280, 200),
+            self.maidens_dock: QRect(260, 430, 280, 130),
+            self.scenario_dock: QRect(260, 565, 280, 155),
+            self.map_dock: QRect(545, 225, 475, 495),
+        }
+        for panel, geometry in defaults.items():
+            panel.setGeometry(geometry)
+            panel.remember_docked_geometry()
+            panel.raise_()
+        self.panel_workspace.setMinimumSize(1020, 720)
+        viewport = self.workspace_scroll.viewport().size()
+        self.panel_workspace.resize(max(1020, viewport.width()), max(720, viewport.height()))
 
 
     def _connect_signals(self):
@@ -633,10 +688,20 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         # Save Window State
-        settings = QSettings("Lufia2Tracker", "MainWindow")
+        settings = tracker_settings()
         try:
              settings.setValue("geometry", self.saveGeometry())
-             settings.setValue("windowState", self.saveState())
+             settings.setValue("panelLayoutV3", True)
+             for panel in self._panels:
+                 key = f"panelsV3/{panel.objectName()}"
+                 panel.remember_docked_geometry()
+                 settings.setValue(f"{key}/dockedGeometry", panel.docked_geometry())
+                 settings.setValue(f"{key}/floating", panel.isFloating())
+                 settings.setValue(f"{key}/visible", panel.isVisible())
+                 settings.setValue(f"{key}/fontSize", panel.current_font_size)
+                 settings.setValue(f"{key}/iconScale", panel.current_icon_scale)
+                 if panel.isFloating():
+                     settings.setValue(f"{key}/floatingGeometry", panel.geometry())
              
              # Save Persistence preferences
              settings.setValue("headerColor", getattr(self, "_header_color", ""))
@@ -646,6 +711,9 @@ class MainWindow(QMainWindow):
              settings.setValue("showPlacementGrid", self.menu_ribbon.show_grid_action.isChecked())
              settings.setValue("snapToPlacementGrid", self.menu_ribbon.snap_grid_action.isChecked())
              settings.setValue("placementGridSize", self._positioning_canvases()["tools"].grid_size)
+             settings.setValue("showCanvasGrid", self.menu_ribbon.show_canvas_grid_action.isChecked())
+             settings.setValue("snapPanelsToCanvasGrid", self.menu_ribbon.snap_canvas_grid_action.isChecked())
+             settings.setValue("canvasGridSize", self.panel_workspace.grid_size)
              settings.setValue("showActivePartyMembers", self.menu_ribbon.active_party_action.isChecked())
 
         except Exception:
@@ -658,26 +726,50 @@ class MainWindow(QMainWindow):
             
         # Force close all docks (Floating docks become top-level windows and might persist)
         self._is_closing = True
-        for dock in self.findChildren(QDockWidget):
+        for dock in self._panels:
             dock.close()
             
         super().closeEvent(event)
 
     def _load_settings(self):
-        settings = QSettings("Lufia2Tracker", "MainWindow")
+        settings = tracker_settings()
         geometry = settings.value("geometry")
-        state = settings.value("windowState")
         
         if geometry:
             self.restoreGeometry(geometry)
-        if state:
-            self.restoreState(state)
+
+        if settings.value("panelLayoutV3", False, type=bool):
+            for panel in self._panels:
+                key = f"panelsV3/{panel.objectName()}"
+                docked_geometry = settings.value(f"{key}/dockedGeometry")
+                if isinstance(docked_geometry, QRect) and docked_geometry.isValid():
+                    panel.setGeometry(docked_geometry)
+                    panel.remember_docked_geometry()
+
+                font_size = settings.value(f"{key}/fontSize", 11, type=int)
+                panel.current_font_size = max(8, min(24, font_size))
+                panel._apply_panel_style()
+                if panel._inner_widget and hasattr(panel._inner_widget, "set_content_font_size"):
+                    panel._inner_widget.set_content_font_size(panel.current_font_size)
+
+                icon_scale = settings.value(f"{key}/iconScale", 1.0, type=float)
+                panel.current_icon_scale = max(0.5, min(3.0, icon_scale))
+                if panel._inner_widget and hasattr(panel._inner_widget, "set_icon_scale"):
+                    panel._inner_widget.set_icon_scale(panel.current_icon_scale)
+
+                if settings.value(f"{key}/floating", False, type=bool):
+                    panel.setFloating(True)
+                    floating_geometry = settings.value(f"{key}/floatingGeometry")
+                    if isinstance(floating_geometry, QRect) and floating_geometry.isValid():
+                        panel.setGeometry(floating_geometry)
+                if not settings.value(f"{key}/visible", True, type=bool):
+                    panel.hide()
             
         # Restore Preferences
         h_color = settings.value("headerColor")
         if h_color:
             self._header_color = h_color
-            for dock in self.findChildren(PersistentDockWidget):
+            for dock in self._panels:
                 dock.title_bar.set_header_color(h_color)
                 
         p_color = settings.value("playerColor")
@@ -708,135 +800,267 @@ class MainWindow(QMainWindow):
         self.menu_ribbon.snap_grid_action.setChecked(
             settings.value("snapToPlacementGrid", False, type=bool)
         )
+
+        canvas_grid_size = settings.value("canvasGridSize", 10, type=int)
+        for action in self.menu_ribbon.canvas_grid_size_group.actions():
+            if action.text() == f"{canvas_grid_size} px":
+                action.setChecked(True)
+                break
+        self.menu_ribbon.show_canvas_grid_action.setChecked(
+            settings.value("showCanvasGrid", False, type=bool)
+        )
+        self.menu_ribbon.snap_canvas_grid_action.setChecked(
+            settings.value("snapPanelsToCanvasGrid", False, type=bool)
+        )
         self.menu_ribbon.active_party_action.setChecked(
             settings.value("showActivePartyMembers", True, type=bool)
         )
 
 
-class ScalableView(QGraphicsView):
+class CanvasScrollArea(QScrollArea):
+    """Keep canvas text and icons at their requested size; scroll when space is tight."""
     def __init__(self, widget):
         super().__init__()
-        self.scene = QGraphicsScene(self)
-        self.setScene(self.scene)
-        
-        # Transparent background so it blends nicely
-        self.setStyleSheet("background: transparent;")
-        
-        self.proxy = self.scene.addWidget(widget)
-        
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setFrameShape(QGraphicsView.Shape.NoFrame)
+        self.setWidgetResizable(True)
+        self.setWidget(widget)
         self.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        
-        # Initial fit: force layout to resolve first
-        # Initial fit: force layout to resolve first
-        widget.resize(widget.sizeHint())
-        self.scene.setSceneRect(self.proxy.boundingRect())
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setStyleSheet("background: transparent; border: none;")
 
-    def update_scale(self):
-        self.scene.setSceneRect(self.proxy.boundingRect())
-        self.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-        transform = self.transform()
-        if transform.m11() > 1.0 or transform.m22() > 1.0:
-            self.resetTransform()
+    def refresh_content_size(self):
+        content = self.widget()
+        if content:
+            content.updateGeometry()
+        self.viewport().update()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.update_scale()
+class PersistentDockWidget(QFrame):
+    """Free-positioned panel with independent resizing and optional top-level floating."""
+    topLevelChanged = pyqtSignal(bool)
+    RESIZE_MARGIN = 6
 
-class PersistentDockWidget(QDockWidget):
-    """
-    A DockWidget that doesn't delete itself on close, 
-    but instead un-floats (docks back) or hides.
-    User requested: 'on close reintegrate into main window'.
-    """
     def __init__(self, title, parent=None, scale_contents=True):
-        super().__init__(title, parent)
+        super().__init__(parent)
         self.scale_contents = scale_contents
         self._inner_widget = None
-        # Set custom title bar for "Pin" functionality
+        self._display_widget = None
+        self._workspace = parent
+        self._main_window = parent.window() if parent else None
+        self._floating = False
+        self._docked_geometry = QRect()
+        self.movement_locked = False
+        self._resize_edges = set()
+        self._resize_start_global = None
+        self._resize_start_geometry = None
+        self.current_font_size = 11
+        self.current_icon_scale = 1.0
+
+        self.setWindowTitle(title)
+        self.setMouseTracking(True)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self._panel_layout = QVBoxLayout(self)
+        self._panel_layout.setContentsMargins(
+            self.RESIZE_MARGIN, self.RESIZE_MARGIN,
+            self.RESIZE_MARGIN, self.RESIZE_MARGIN,
+        )
+        self._panel_layout.setSpacing(0)
         self.title_bar = DockTitleBar(title, self)
-        self.setTitleBarWidget(self.title_bar)
+        self._panel_layout.addWidget(self.title_bar)
         self.topLevelChanged.connect(self._normalize_floating_window)
-        
-        self.current_font_size = 11 # Default
-        self.current_icon_scale = 1.0 # Default
-        
-        # Border Style (Global for the dock)
+        self._apply_panel_style()
+
+    def _apply_panel_style(self):
         self.setStyleSheet(f"""
-            QDockWidget {{
-                border: 1px solid #444; 
-                titlebar-close-icon: url(none);
-                titlebar-normal-icon: url(none);
-            }}
+            PersistentDockWidget {{ border: 1px solid #555; background-color: #2b2b2b; }}
             QWidget {{ font-size: {self.current_font_size}px; }}
         """)
 
     def setWidget(self, widget):
-        if not widget:
-            super().setWidget(None)
-            self._inner_widget = None
-            return
-            
+        if self._display_widget is not None:
+            self._panel_layout.removeWidget(self._display_widget)
+            self._display_widget.setParent(None)
         self._inner_widget = widget
-        if self.scale_contents:
-            view = ScalableView(widget)
-            super().setWidget(view)
+        if widget is None:
+            self._display_widget = None
+            return
+        self._display_widget = CanvasScrollArea(widget) if self.scale_contents else widget
+        self._panel_layout.addWidget(self._display_widget, 1)
+
+    def widget(self):
+        return self._display_widget
+
+    def set_movement_locked(self, locked: bool):
+        self.movement_locked = bool(locked)
+
+    def move_panel(self, position: QPoint):
+        if self._floating:
+            self.move(position)
+            return
+        self.move(max(0, position.x()), max(0, position.y()))
+        self._grow_workspace_to_fit()
+
+    def finish_geometry_change(self, resize_edges=None):
+        if not self._floating:
+            if hasattr(self._workspace, "snap_geometry"):
+                snapped = self._workspace.snap_geometry(self.geometry(), resize_edges)
+                if snapped.width() < self.minimumWidth():
+                    snapped.setWidth(self.minimumWidth())
+                if snapped.height() < self.minimumHeight():
+                    snapped.setHeight(self.minimumHeight())
+                self.setGeometry(snapped)
+            self.remember_docked_geometry()
+            self._fit_workspace_to_panels()
+
+    def remember_docked_geometry(self):
+        if not self._floating:
+            self._docked_geometry = QRect(self.geometry())
+
+    def docked_geometry(self):
+        return QRect(self._docked_geometry)
+
+    def _grow_workspace_to_fit(self):
+        if self._floating or self._workspace is None:
+            return
+        required_width = max(self._workspace.minimumWidth(), self.x() + self.width())
+        required_height = max(self._workspace.minimumHeight(), self.y() + self.height())
+        self._workspace.setMinimumSize(required_width, required_height)
+
+    def _fit_workspace_to_panels(self):
+        if self._floating or self._workspace is None:
+            return
+        panels = self._workspace.findChildren(
+            PersistentDockWidget, options=Qt.FindChildOption.FindDirectChildrenOnly
+        )
+        required_width = max([1020] + [panel.x() + panel.width() for panel in panels])
+        required_height = max([720] + [panel.y() + panel.height() for panel in panels])
+        self._workspace.setMinimumSize(required_width, required_height)
+
+    def _edges_at(self, position):
+        edges = set()
+        if position.x() <= self.RESIZE_MARGIN:
+            edges.add("left")
+        elif position.x() >= self.width() - self.RESIZE_MARGIN:
+            edges.add("right")
+        if position.y() <= self.RESIZE_MARGIN:
+            edges.add("top")
+        elif position.y() >= self.height() - self.RESIZE_MARGIN:
+            edges.add("bottom")
+        return edges
+
+    def _set_resize_cursor(self, edges):
+        if edges in ({"left", "top"}, {"right", "bottom"}):
+            self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        elif edges in ({"right", "top"}, {"left", "bottom"}):
+            self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+        elif "left" in edges or "right" in edges:
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        elif "top" in edges or "bottom" in edges:
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
         else:
-            super().setWidget(widget)
+            self.unsetCursor()
+
+    def mousePressEvent(self, event):
+        edges = self._edges_at(event.position().toPoint())
+        if event.button() == Qt.MouseButton.LeftButton and edges:
+            self._resize_edges = edges
+            self._resize_start_global = event.globalPosition().toPoint()
+            self._resize_start_geometry = QRect(self.geometry())
+            self.raise_()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._resize_start_global is not None:
+            delta = event.globalPosition().toPoint() - self._resize_start_global
+            rect = QRect(self._resize_start_geometry)
+            minimum_width = self.minimumWidth()
+            minimum_height = self.minimumHeight()
+            if "left" in self._resize_edges:
+                new_left = min(rect.right() - minimum_width + 1, rect.left() + delta.x())
+                rect.setLeft(new_left)
+            if "right" in self._resize_edges:
+                rect.setRight(max(rect.left() + minimum_width - 1, rect.right() + delta.x()))
+            if "top" in self._resize_edges:
+                new_top = min(rect.bottom() - minimum_height + 1, rect.top() + delta.y())
+                rect.setTop(new_top)
+            if "bottom" in self._resize_edges:
+                rect.setBottom(max(rect.top() + minimum_height - 1, rect.bottom() + delta.y()))
+            if not self._floating:
+                if rect.left() < 0:
+                    rect.moveLeft(0)
+                if rect.top() < 0:
+                    rect.moveTop(0)
+            self.setGeometry(rect)
+            self._grow_workspace_to_fit()
+            event.accept()
+            return
+        self._set_resize_cursor(self._edges_at(event.position().toPoint()))
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._resize_start_global is not None:
+            resized_edges = set(self._resize_edges)
+            self._resize_edges.clear()
+            self._resize_start_global = None
+            self._resize_start_geometry = None
+            self.finish_geometry_change(resized_edges)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def leaveEvent(self, event):
+        if self._resize_start_global is None:
+            self.unsetCursor()
+        super().leaveEvent(event)
 
     def adjust_font_size(self, delta):
-        self.current_font_size += delta
-        if self.current_font_size < 8: self.current_font_size = 8
-        if self.current_font_size > 24: self.current_font_size = 24
-        
-        # Apply to children via stylesheet (generic fallback)
-        self.setStyleSheet(f"""
-            QDockWidget {{
-                border: 1px solid #444;
-            }}
-            QWidget {{ font-size: {self.current_font_size}px; }}
-        """)
-        
-        # Try specific update method for known widgets
-        widget = self._inner_widget
-        if widget and hasattr(widget, "set_content_font_size"):
-             widget.set_content_font_size(self.current_font_size)
-             # Rescale the graphics view bounding rect if layout changed slightly
-             if isinstance(self.widget(), ScalableView):
-                 self.widget().update_scale()
+        self.current_font_size = max(8, min(24, self.current_font_size + delta))
+        self._apply_panel_style()
+        if self._inner_widget and hasattr(self._inner_widget, "set_content_font_size"):
+            self._inner_widget.set_content_font_size(self.current_font_size)
+            if isinstance(self.widget(), CanvasScrollArea):
+                self.widget().refresh_content_size()
 
     def adjust_icon_size(self, delta):
-        self.current_icon_scale += (delta * 0.1)
-        if self.current_icon_scale < 0.5: self.current_icon_scale = 0.5
-        if self.current_icon_scale > 3.0: self.current_icon_scale = 3.0
-        
-        widget = self._inner_widget
-        if widget and hasattr(widget, "set_icon_scale"):
-             widget.set_icon_scale(self.current_icon_scale)
-             if isinstance(self.widget(), ScalableView):
-                 self.widget().update_scale()
+        self.current_icon_scale = max(0.5, min(3.0, self.current_icon_scale + (delta * 0.1)))
+        if self._inner_widget and hasattr(self._inner_widget, "set_icon_scale"):
+            self._inner_widget.set_icon_scale(self.current_icon_scale)
+            if isinstance(self.widget(), CanvasScrollArea):
+                self.widget().refresh_content_size()
+
+    def isFloating(self):
+        return self._floating
+
+    def setFloating(self, floating: bool):
+        floating = bool(floating)
+        if floating == self._floating:
+            return
+        if floating:
+            self.remember_docked_geometry()
+            global_position = self._workspace.mapToGlobal(self.pos())
+            self.hide()
+            self.setParent(None)
+            self.setWindowFlags(Qt.WindowType.Window)
+            self._floating = True
+            self.move(global_position)
+            self.show()
+        else:
+            self.hide()
+            self.setParent(self._workspace)
+            self.setWindowFlags(Qt.WindowType.Widget)
+            self._floating = False
+            geometry = self._docked_geometry if self._docked_geometry.isValid() else QRect(0, 0, 300, 200)
+            self.setGeometry(geometry)
+            self.show()
+            self.raise_()
+            self._fit_workspace_to_panels()
+        self.topLevelChanged.emit(self._floating)
 
     def _normalize_floating_window(self, is_floating: bool):
-        """Use a normal window for floating docks instead of an owned tool window."""
-        if not is_floating:
-            return
-        QTimer.singleShot(0, self._apply_normal_floating_flags)
-
-    def _apply_normal_floating_flags(self):
-        if not self.isFloating():
-            return
-        flags = self.windowFlags()
-        flags &= ~Qt.WindowType.WindowType_Mask
-        flags |= Qt.WindowType.Window
-        flags &= ~Qt.WindowType.WindowStaysOnTopHint
-        self.setWindowFlags(flags)
-        self.show()
-        QTimer.singleShot(0, self._clear_native_window_owner)
+        if is_floating:
+            QTimer.singleShot(0, self._clear_native_window_owner)
 
     def _clear_native_window_owner(self):
-        """On Windows, detach the native owner so the dock can move behind the main window."""
         if not self.isFloating():
             return
         try:
@@ -848,32 +1072,25 @@ class PersistentDockWidget(QDockWidget):
             set_owner.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p)
             set_owner.restype = ctypes.c_void_p
             ctypes.set_last_error(0)
-            previous_owner = set_owner(int(self.winId()), -8, 0)  # GWL_HWNDPARENT
+            previous_owner = set_owner(int(self.winId()), -8, 0)
             error = ctypes.get_last_error()
             if previous_owner == 0 and error:
                 logging.warning(
                     "Could not clear floating-window owner | dock=%s | win32Error=%s",
-                    self.objectName() or self.windowTitle(),
-                    error,
+                    self.objectName() or self.windowTitle(), error,
                 )
         except Exception:
             logging.exception("Failed to normalize floating-window ownership")
 
     def closeEvent(self, event):
-        # Allow global app termination to close floating docks
-        if self.parent() and getattr(self.parent(), '_is_closing', False):
-             super().closeEvent(event)
-             return
-             
+        if self._main_window and getattr(self._main_window, "_is_closing", False):
+            event.accept()
+            return
         if self.isFloating():
-            # If floating, 'restore' it to the dock area instead of hiding
             self.setFloating(False)
-            event.ignore() # Prevent the default close (hide) event/deletion
-        else:
-            # If already docked and user clicks X, standard behavior is Hide.
-            # We can allow hide, or ignore if we want them 'undeletable'. 
-            # Let's allow hide so they can clear clutter, but they can re-open via View menu (TODO).
-            super().closeEvent(event)
+            event.ignore()
+            return
+        event.accept()
 
 
 

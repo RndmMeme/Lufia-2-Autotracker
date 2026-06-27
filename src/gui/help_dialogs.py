@@ -62,7 +62,7 @@ class HelpDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Help & Documentation")
         self.setWindowIcon(QIcon("Lufia_2_Auto_Tracker.ico"))
-        self.resize(700, 500) # Wider for pages
+        self.resize(850, 600)
         
         # Main Layout
         layout = QHBoxLayout()
@@ -99,35 +99,53 @@ class HelpDialog(QDialog):
         self.add_page("Introduction", f"""
             <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v{APP_VERSION}!</h3>
             <p>This tracker helps you keep track of your randomizer run with advanced features like auto-tracking, map visualization, and inventory management.</p>
-            <p><b>New in v1.4.9:</b></p>
+            <p><b>New in v1.4.11:</b></p>
             <ul>
-                <li><b>Durable Error Logs:</b> Python, Qt, helper, and memory-read failures are recorded with context.</li>
-                <li><b>Last-Good-State Protection:</b> Incomplete snapshots no longer erase valid tracker progress.</li>
-                <li><b>Flexible Placement:</b> Free placement now coexists with optional grids, snapping, and auto-align.</li>
-                <li><b>Completion-Only Dungeons:</b> Clicking a dungeon toggles cleared state without overriding accessibility logic.</li>
+                <li><b>Clear Character States:</b> Every obtained character is fully lit; location notes identify where inactive recruits were found.</li>
+                <li><b>Editable One-Shot Sync:</b> Synced party members can be manually toggled after the helper disconnects.</li>
+                <li><b>Focused Menus:</b> Layout, View, and Style commands are grouped by what they affect.</li>
+                <li><b>Current Guide:</b> Menu paths, independent panels, grids, syncing, and persistence are documented here.</li>
             </ul>
         """)
         
         # 2. Layout & UI
         self.add_page("Layout & UI", """
             <h3>Customizing the Interface</h3>
-            <h4>Dock System</h4>
+            <h4>Independent Panel System</h4>
             <ul>
-                <li><b>Rearrange:</b> Drag 'n drop dock titles to rearrange panels.</li>
-                <li><b>Float:</b> Drag a panel out to make it a separate window.</li>
-                <li><b>Font Size:</b> Enable <b>View &gt; Show Font Controls</b>. Use (+/-) on dock headers to scale text size.</li>
-                <li><b>Icon Sizing:</b> Enable <b>View &gt; Show Icon Size Controls</b>. Use (+/-) on dock headers to scale portrait/sprite sizes.</li>
-                <li><b>Recover Docks:</b> Use <b>Layout &gt; Restore Closed Windows</b>.</li>
-                <li><b>Header Color:</b> Use <b>Style &gt; Header Color</b>.</li>
+                <li><b>Rearrange:</b> Drag a panel title to place it freely in the workspace.</li>
+                <li><b>Resize:</b> Drag any panel border. Other panels retain their exact geometry; overlap is allowed.</li>
+                <li><b>Float:</b> Use the detach button or double-click a title to make a separate window.</li>
+                <li><b>Font Size:</b> Enable <b>View &gt; Panel Controls &gt; Show Font Controls</b>, then use (+/-) in panel headers.</li>
+                <li><b>Icon Sizing:</b> Enable <b>View &gt; Panel Controls &gt; Show Icon Size Controls</b>.</li>
+                <li><b>Recover Panels:</b> Use <b>Layout &gt; Panel Arrangement &gt; Restore Closed Panels</b>.</li>
+                <li><b>Snap Back:</b> Use <b>Layout &gt; Panel Arrangement &gt; Snap Back Detached Panels</b>.</li>
+                <li><b>Factory Arrangement:</b> Use <b>Layout &gt; Panel Arrangement &gt; Reset Panel Arrangement</b>.</li>
+                <li><b>Header Color:</b> Use <b>Style &gt; Panel Appearance &gt; Header Color</b>.</li>
             </ul>
             <h4>Free & Grid Placement</h4>
             <ul>
-                <li>Toggle <b>Layout &gt; Edit Layout</b> for unrestricted free placement.</li>
-                <li>Drag and drop ANY icon in Characters, Tools, or Keys widgets to your preferred order.</li>
-                <li>Use <b>Show Placement Grid</b> and <b>Snap to Grid</b> independently.</li>
-                <li>Choose a grid size or auto-align one/all canvases from the Layout menu.</li>
+                <li>Toggle <b>Layout &gt; Icon Placement &gt; Edit Icon Positions</b> to move icons inside Characters, Maidens, Tools, and Keys.</li>
+                <li>The icon-placement switch does not control panel movement or resizing.</li>
+                <li>Use the other <b>Icon Placement</b> commands for the picture grid, snapping, auto-align, defaults, and reset.</li>
+                <li>Use <b>Layout &gt; Panel Arrangement &gt; Canvas Grid</b> to display a workspace grid and snap whole panels while moving or resizing them.</li>
+                <li>Changing either grid size changes only its ruler; existing pictures and panels stay unchanged.</li>
                 <li>Your layout is saved automatically.</li>
-                <li>Icon resizing scales saved coordinates and spacing without moving the dock containers.</li>
+                <li>Icon resizing scales saved coordinates and spacing; smaller panels scroll instead of shrinking text.</li>
+            </ul>
+        """)
+
+        self.add_page("Menus & Display", """
+            <h3>Where Commands Live</h3>
+            <ul>
+                <li><b>Layout &gt; Icon Placement:</b> icon editing, picture grid, picture snapping, auto-align, and icon-position defaults.</li>
+                <li><b>Layout &gt; Panel Arrangement:</b> Canvas Grid, closed-panel recovery, snap-back, and panel reset.</li>
+                <li><b>View &gt; Panel Controls:</b> show or hide the per-panel font and icon-size buttons.</li>
+                <li><b>View &gt; Character Display:</b> location notes and active-party visibility.</li>
+                <li><b>View &gt; Map Sprites:</b> character, capsule, and Maiden sprites drawn on the map.</li>
+                <li><b>Style &gt; Panel Appearance:</b> panel-header color.</li>
+                <li><b>Style &gt; Player Marker:</b> map marker color, shape, and size.</li>
+                <li><b>Style &gt; Map Locations:</b> city color plus city/dungeon marker shapes.</li>
             </ul>
         """)
         
@@ -136,12 +154,12 @@ class HelpDialog(QDialog):
             <h3>Tracking Controls</h3>
             <h4>Auto Tracker</h4>
             <ul>
-                <li><b>Auto Toggle:</b> Starts the background helper that locates and reads the active emulator.</li>
-                <li><b>Sync Menu:</b> Perform a one-time snapshot of specific data (Inventory, Characters, etc.) without keeping the connection open.</li>
+                <li><b>Auto:</b> Continuously reads the emulator. Live memory will reassert inventory and character states after manual clicks.</li>
+                <li><b>Sync:</b> Reads one valid snapshot and disconnects. The resulting board remains manually editable, including current party members.</li>
                 <li><b>Status:</b> The ribbon shows discovery progress and turns green after a validated attachment.</li>
             </ul>
             <h4>Important: Loading Saves</h4>
-            <p><b>Please note:</b> When loading a new save state or switching saves, a manual <b>'Reset'</b> via the Options menu is currently required to fully wipe the character board before the next sync applies. After resetting the tracker, please press the manual <b>Sync</b> button, or deactivate and reactivate active tracking to fetch the latest location data.</p>
+            <p>When changing seed or save, use <b>Options &gt; Reset</b> before Sync/Auto if you want to discard manual overrides and notes from the previous run.</p>
             <h4>Granular Filters</h4>
             <p>In the 'Tracker' menu, you can toggle which data types to update (e.g. disable 'Pos' if you want manual map control).</p>
         """)
@@ -153,8 +171,9 @@ class HelpDialog(QDialog):
             <ul>
                 <li><b>Shape:</b> Choose Triangle, Rhombus, Square, or <b>Active Sprite</b>.</li>
                 <li><b>Active Sprite:</b> Displays the sprite of your current Party Leader (Slot 1). Updates automatically!</li>
-                <li><b>Size:</b> Adjust the marker size (1x, 2x, 3x, 4x) via 'Tracker > Player Size'.</li>
-                <li><b>Color:</b> Pick a custom color via 'Tracker > Player Color' (applies to shapes only).</li>
+                <li><b>Size:</b> Choose 1x, 2x, 3x, or 4x via <b>Style &gt; Player Marker &gt; Size</b>.</li>
+                <li><b>Color:</b> Use <b>Style &gt; Player Marker &gt; Color</b> (applies to geometric markers).</li>
+                <li><b>Shape:</b> Use <b>Style &gt; Player Marker &gt; Shape</b>.</li>
             </ul>
         """)
         
@@ -167,9 +186,9 @@ class HelpDialog(QDialog):
             </ul>
             <h3>Appearance & Shapes</h3>
             <ul>
-                <li>Use <b>Style &gt; City Color</b> to adjust the color of cities.</li>
-                <li>Use <b>Style &gt; City Shape</b> to configure city shape profiles.</li>
-                <li>Use <b>Style &gt; Dungeon Shape</b> to assign geometric structures to all dungeons.</li>
+                <li>Use <b>Style &gt; Map Locations &gt; City Color</b> to adjust city color.</li>
+                <li>Use <b>Style &gt; Map Locations &gt; City Shape</b> for city markers.</li>
+                <li>Use <b>Style &gt; Map Locations &gt; Dungeon Shape</b> for dungeon markers.</li>
             </ul>
             <h3>Color Codes</h3>
             <ul>
@@ -183,12 +202,14 @@ class HelpDialog(QDialog):
         self.add_page("Character & Sprites", """
             <h3>Managing Characters</h3>
             <ul>
-                <li><b>Auto:</b> Characters are marked obtained when they join your party.</li>
+                <li><b>Brightness:</b> Obtained characters are fully lit whether active or inactive. Unobtained characters are dimmed.</li>
+                <li><b>One-Shot Sync:</b> Current party members can be clicked off/on after Sync disconnects.</li>
+                <li><b>Continuous Auto:</b> Live memory restores the real party/obtained state on later updates.</li>
                 <li><b>Manual Assign:</b> Right-click a location on the map and select a character (e.g. 'Found Guy at Alunze').</li>
                 <li><b>Sprites:</b> A sprite will appear on the map at the assigned location.</li>
                 <li><b>Drag & Drop:</b> You can drag character sprites on the map if they obscure a location dot!</li>
-                <li><b>Toggle:</b> Use 'Show Sprites' menu to hide/show specific categories (Maidens, Capsules, etc).</li>
-                <li><b>Party Filter:</b> Disable <b>View &gt; Show Active Party Members</b> to hide the four active human slots while keeping inactive recruits and capsule monsters visible.</li>
+                <li><b>Map Sprites:</b> Use <b>View &gt; Map Sprites</b> to hide/show categories.</li>
+                <li><b>Party Filter:</b> Disable <b>View &gt; Character Display &gt; Show Active Party Members</b> to hide active human slots while retaining inactive recruits and capsule monsters.</li>
             </ul>
         """)
 
@@ -197,9 +218,10 @@ class HelpDialog(QDialog):
             <h3>Auto-Saving Preferences</h3>
             <p>The tracker automatically saves your settings when you close the window:</p>
             <ul>
-                <li><b>Window State:</b> Size, Position, and Dock Layout.</li>
-                <li><b>Custom Layouts:</b> Positions from 'Edit Layout' mode.</li>
-                <li><b>Visuals:</b> Header Color, Player Marker (Color, Shape, Scale).</li>
+                <li><b>Panels:</b> Main-window geometry plus each panel's position, size, visibility, and detached state.</li>
+                <li><b>Icon Positions:</b> Custom positions created through <b>Edit Icon Positions</b>.</li>
+                <li><b>Grids:</b> Picture-grid and Canvas Grid visibility, snapping, and sizes.</li>
+                <li><b>Visuals:</b> Header color, character display, and player marker settings.</li>
             </ul>
             <p>These settings are restored automatically when you launch the tracker next time.</p>
         """)

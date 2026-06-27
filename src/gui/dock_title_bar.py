@@ -1,11 +1,13 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QStyle
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QIcon
 
 class DockTitleBar(QWidget):
     def __init__(self, title, dock_widget):
         super().__init__(dock_widget)
         self.dock_widget = dock_widget
+        self._drag_start_global = None
+        self._panel_start = None
         
         self.layout = QHBoxLayout()
         self.layout.setContentsMargins(5, 2, 5, 2)
@@ -91,17 +93,7 @@ class DockTitleBar(QWidget):
         self.icon_up_btn.setVisible(visible)
 
     def _toggle_pin(self, checked):
-        features = self.dock_widget.features()
-        if checked:
-            # Pinned = Not Movable
-            features &= ~self.dock_widget.DockWidgetFeature.DockWidgetMovable
-            features &= ~self.dock_widget.DockWidgetFeature.DockWidgetFloatable
-        else:
-            # Unpinned = Movable
-            features |= self.dock_widget.DockWidgetFeature.DockWidgetMovable
-            features |= self.dock_widget.DockWidgetFeature.DockWidgetFloatable
-            
-        self.dock_widget.setFeatures(features)
+        self.dock_widget.set_movement_locked(checked)
         self._update_pin_icon(checked)
 
     def _update_pin_icon(self, is_pinned):
@@ -135,3 +127,37 @@ class DockTitleBar(QWidget):
             self.float_btn.setText("❐")
             self.float_btn.setToolTip("Detach / Float")
             # self.float_btn.setStyleSheet("")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and not self.dock_widget.movement_locked:
+            self._drag_start_global = event.globalPosition().toPoint()
+            self._panel_start = self.dock_widget.pos()
+            self.raise_()
+            self.dock_widget.raise_()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._drag_start_global is not None and self._panel_start is not None:
+            delta = event.globalPosition().toPoint() - self._drag_start_global
+            self.dock_widget.move_panel(self._panel_start + delta)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._drag_start_global is not None:
+            self._drag_start_global = None
+            self._panel_start = None
+            self.dock_widget.finish_geometry_change()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._toggle_float()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)

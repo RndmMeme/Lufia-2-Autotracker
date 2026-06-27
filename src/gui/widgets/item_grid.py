@@ -147,7 +147,7 @@ class ItemGrid(PositioningCanvas):
         for name, icon in self.icons.items():
             pos = self.layout_manager.get_position(self.widget_id, name, scale)
             if pos:
-                icon.move(pos[0], pos[1])
+                icon.move(self.snap_position(pos[0], pos[1]))
             else:
                 default_x = x + (col * spacing_x)
                 default_y = y
@@ -199,6 +199,7 @@ class ItemGrid(PositioningCanvas):
     def set_content_font_size(self, size):
         for icon in self.icons.values():
             icon.set_font_size(size)
+        self.update_positions()
 
     def set_icon_scale(self, scale):
         self.current_scale = scale

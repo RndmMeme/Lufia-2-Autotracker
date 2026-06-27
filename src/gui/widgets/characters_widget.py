@@ -28,8 +28,8 @@ class CharacterCell(QWidget):
     def __init__(self, name, parent=None):
         super().__init__(parent)
         self.name = name
-        self.setFixedWidth(80) # Slightly wider for long names
-        self.setMinimumHeight(130) # Enforce height to reserve space for text (Fix Clipping)
+        self._font_size = 11
+        self.setFixedWidth(80)
         self.edit_mode = False
         self._drag_start_pos = None
 
@@ -53,11 +53,12 @@ class CharacterCell(QWidget):
         self.loc_label = QLabel("")
         self.loc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.loc_label.setWordWrap(True)
-        self.loc_label.setStyleSheet("font-size: 9px; color: #AAAAAA;")
+        self.loc_label.setStyleSheet("font-size: 11px; color: #AAAAAA;")
         self.layout.addWidget(self.loc_label, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         self.loc_label.hide()
         
         self.layout.addStretch()
+        self._update_geometry()
         
     # (Methods set_edit_mode, mousePress/Move/Release... remain same)
 
@@ -98,13 +99,30 @@ class CharacterCell(QWidget):
     position_changed = pyqtSignal(str, int, int)
     
     def set_font_size(self, size):
+        self._font_size = size
         self.name_label.setStyleSheet(f"font-size: {size}px; font-weight: bold; color: white;")
-        self.loc_label.setStyleSheet(f"font-size: {max(8, size-2)}px; color: #AAAAAA;")
+        self.loc_label.setStyleSheet(f"font-size: {max(10, size)}px; color: #AAAAAA;")
+        self._update_geometry()
         
     def set_icon_scale(self, scale):
         size = int(50 * scale)
         self.icon_label.setFixedSize(size, size)
         self.setFixedWidth(max(80, size + 20))
+        self._update_geometry()
+
+    def _update_geometry(self):
+        """Size the cell from real icon/text metrics instead of a transform."""
+        width = self.width()
+        text_height = self.name_label.sizeHint().height()
+        if not self.loc_label.isHidden():
+            location_height = self.loc_label.heightForWidth(width)
+            if location_height < 0:
+                location_height = self.loc_label.sizeHint().height()
+            text_height += location_height
+        minimum_height = self.icon_label.height() + text_height + 10
+        self.setMinimumHeight(minimum_height)
+        self.resize(width, minimum_height)
+        self.updateGeometry()
         
     def set_pixmap(self, pixmap):
         self.icon_label.setPixmap(pixmap)
@@ -129,6 +147,7 @@ class CharacterCell(QWidget):
             self.loc_label.show()
         else:
             self.loc_label.hide()
+        self._update_geometry()
 
 
 class CharactersCanvas(PositioningCanvas):
@@ -214,7 +233,7 @@ class CharactersCanvas(PositioningCanvas):
             # Check Manual Override
             pos = self.layout_manager.get_position("characters", name, scale)
             if pos:
-                cell.move(pos[0], pos[1])
+                cell.move(self.snap_position(pos[0], pos[1]))
             else:
                 snapped = self.snap_position(default_x, default_y)
                 cell.move(snapped)
@@ -285,6 +304,7 @@ class CharactersCanvas(PositioningCanvas):
     def set_content_font_size(self, size):
         for cell in self.cells.values():
             cell.set_font_size(size)
+        self._reflow_grid()
 
     def set_icon_scale(self, scale):
         self.icon_scale = scale
@@ -306,7 +326,6 @@ class CharactersCanvas(PositioningCanvas):
         
     def refresh_state(self):
         active_party = self.state_manager.active_party # Humans Only
-        obtained_capsules = getattr(self.state_manager, '_obtained_capsules', set())
         obtained_chars = self.state_manager.obtained_characters
         
         # Get reverse lookup for locations: Character -> Location
@@ -321,7 +340,6 @@ class CharactersCanvas(PositioningCanvas):
                 continue
                 
             is_active_human = name in active_party
-            is_active_capsule = name in obtained_capsules
             is_obtained = obtained_chars.get(name, False)
             location = char_locations.get(name)
 
@@ -329,10 +347,9 @@ class CharactersCanvas(PositioningCanvas):
             if cell.isHidden():
                 continue
             
-            # --- Visual Logic ---
-            # 1. Active Human or Capsule -> Full Opacity
-            # 2. Recruited Inactive Human -> Dimmed (0.5) 
-            # 3. Not Obtained -> Dimmed / Grey (0.3)
+            # Obtained state alone controls brightness. Active/inactive party
+            # status is already communicated by the party filter and location
+            # note, and must not mask manual toggles after a one-shot sync.
             
             rel_path = chars_data[name]["image_path"]
             full_path = self.data_loader.resolve_image_path(rel_path)
@@ -341,26 +358,11 @@ class CharactersCanvas(PositioningCanvas):
             # Reset Styling
             cell.setStyleSheet("")
 
-            if is_active_human or is_active_capsule:
+            if is_obtained:
                 cell.set_pixmap(pix)
-            elif is_obtained:
-                # Recruited but inactive -> Dimmed 
-                # User said: "As long as there is a location assigned to them it signals they have been found."
-                # User said: "recruited but inactive characters are still fully lit. at this point just dim them."
-                # User feedback: "active state of an acquired character is too dim" -> Brighten from 0.5 to 0.85.
-                
-                dim_pix = QPixmap(pix.size())
-                dim_pix.fill(Qt.GlobalColor.transparent)
-                painter = QPainter(dim_pix)
-                painter.setOpacity(0.7) # User: 0.85 too bright, 0.5 too dim.
-                painter.drawPixmap(0, 0, pix)
-                painter.end()
-                
-                cell.set_pixmap(dim_pix)
-                # Maybe border to indicate "found but not party"?
-                # cell.setStyleSheet("CharacterCell { border: 1px solid #444; border-radius: 4px; }") 
             else:
-                # Not Obtained -> Heavy Dim + Grey
+                # Not obtained -> visibly dimmed, including manually toggled
+                # members retained in active_party after a one-shot sync.
                 gray_pix = QPixmap(pix.size())
                 gray_pix.fill(Qt.GlobalColor.transparent)
                 painter = QPainter(gray_pix)

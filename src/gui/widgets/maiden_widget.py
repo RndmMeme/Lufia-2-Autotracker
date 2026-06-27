@@ -25,8 +25,8 @@ class MaidenCell(QWidget):
     def __init__(self, name, parent=None):
         super().__init__(parent)
         self.name = name
+        self._font_size = 11
         self.setFixedWidth(80) 
-        self.setMinimumHeight(100) 
         self.edit_mode = False
         self._drag_start_pos = None
 
@@ -51,12 +51,13 @@ class MaidenCell(QWidget):
         self.loc_label = QLabel("")
         self.loc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.loc_label.setWordWrap(True)
-        self.loc_label.setStyleSheet("font-size: 9px; color: #AAAAAA;")
+        self.loc_label.setStyleSheet("font-size: 11px; color: #AAAAAA;")
         self.layout.addWidget(self.loc_label, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         self.loc_label.hide()
         
         self.layout.addStretch()
         self.setToolTip(name)
+        self._update_geometry()
 
     def set_edit_mode(self, enabled):
         self.edit_mode = enabled
@@ -90,13 +91,29 @@ class MaidenCell(QWidget):
             super().mouseReleaseEvent(event)
             
     def set_font_size(self, size):
+        self._font_size = size
         self.name_label.setStyleSheet(f"font-size: {size}px; font-weight: bold; color: white;")
-        self.loc_label.setStyleSheet(f"font-size: {max(8, size-2)}px; color: #AAAAAA;")
+        self.loc_label.setStyleSheet(f"font-size: {max(10, size)}px; color: #AAAAAA;")
+        self._update_geometry()
         
     def set_icon_scale(self, scale):
         size = int(50 * scale)
         self.icon_label.setFixedSize(size, size)
         self.setFixedWidth(max(80, size + 20))
+        self._update_geometry()
+
+    def _update_geometry(self):
+        width = self.width()
+        text_height = self.name_label.sizeHint().height()
+        if not self.loc_label.isHidden():
+            location_height = self.loc_label.heightForWidth(width)
+            if location_height < 0:
+                location_height = self.loc_label.sizeHint().height()
+            text_height += location_height
+        minimum_height = self.icon_label.height() + text_height + 10
+        self.setMinimumHeight(minimum_height)
+        self.resize(width, minimum_height)
+        self.updateGeometry()
         
     def set_pixmap(self, pixmap):
         self.icon_label.setPixmap(pixmap)
@@ -118,6 +135,7 @@ class MaidenCell(QWidget):
             self.loc_label.show()
         else:
             self.loc_label.hide()
+        self._update_geometry()
 
 
 class MaidenWidget(PositioningCanvas):
@@ -164,7 +182,7 @@ class MaidenWidget(PositioningCanvas):
             
             pos = self.layout_manager.get_position("maidens", name, scale)
             if pos:
-                cell.move(pos[0], pos[1])
+                cell.move(self.snap_position(pos[0], pos[1]))
             else:
                 cell.move(self.snap_position(default_x, default_y))
 
@@ -203,6 +221,11 @@ class MaidenWidget(PositioningCanvas):
         self.icon_scale = scale
         for cell in self.cells.values():
             cell.set_icon_scale(scale)
+        self.update_positions()
+
+    def set_content_font_size(self, size):
+        for cell in self.cells.values():
+            cell.set_font_size(size)
         self.update_positions()
         
     def set_locations_visible(self, visible):

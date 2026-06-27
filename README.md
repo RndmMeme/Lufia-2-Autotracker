@@ -1,8 +1,27 @@
-# Lufia 2 Auto Tracker v1.4.9
+# Lufia 2 Auto Tracker v1.4.11
+
+> **Release status:** v1.4.11 is the latest experimental release. A stable designation is pending broader emulator and UI validation.
 
 A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (SNES), fully refactored in **Python (PyQt6)**.
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
+
+## New in v1.4.11
+
+*   **Clear Obtained State**: Obtained characters remain fully lit whether active or inactive; location notes already identify where recruits were found.
+*   **Editable One-Shot Sync**: Party members from a completed Sync can be manually toggled like every other character. Continuous Auto still restores live emulator state.
+*   **Focused Menus**: Layout is grouped into Icon Placement and Panel Arrangement; View and Style options are grouped by purpose.
+*   **Current User Guide**: Help documentation now matches independent panels, both grids, current menu paths, syncing, character display, and persistence.
+
+## New in v1.4.10
+
+*   **Readable Canvas Resizing**: Characters and Maidens retain real font and icon sizes while docked; scrollbars appear when a panel is smaller than its content.
+*   **Effective Size Controls**: Character/Maiden font and icon controls now change rendered content instead of being cancelled by automatic scene scaling.
+*   **Consistent Grid Reset**: Reset and restored picture positions honor the active snap grid.
+*   **Independent Panels**: Every panel owns its position, width, and height. Resizing Characters, Maidens, Tools, Keys, Map, Items, or Hints never resizes a neighbour.
+*   **Separate Canvas Grid**: The panel workspace has its own optional grid, size, and move/resize snapping, independent from picture placement.
+*   **Stable Grid Controls**: Changing either grid's pixel size changes only the ruler; existing pictures and panels are not resized or reflowed.
+*   **Window Layout Recovery**: Layout > Reset Window Layout rebuilds the factory free-panel arrangement without changing tracked game state.
 
 ## ✨ New in v1.4.9
 
@@ -126,8 +145,8 @@ Or just use the .exe
 *   **Left Click (Map)**: Toggle dungeon completion (Red/Green ↔ Grey).
 *   **Right Click (Map)**: Open Context Menu (City = Item Search, Dungeon = Char Assign).
 *   **Drag & Drop (Characters)**: Drag character sprites from the top dock onto map locations to assign them.
-*   **Edit Layout Mode**:
-    *   Enable in `Layout -> Edit Layout`.
+*   **Edit Icon Positions**:
+    *   Enable in `Layout -> Icon Placement -> Edit Icon Positions`.
     *   Drag items inside docks to rearrange them.
     *   Optionally show a grid, snap while dragging, or auto-align a canvas.
     *   Layouts are auto-saved under `%LOCALAPPDATA%\Lufia2AutoTracker`.

@@ -30,7 +30,7 @@ namespace Lufia2AutoTracker.Helper
                 return SelfTest.Run(dataDirectory);
             }
 
-            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.9");
+            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.11");
             Console.WriteLine($"[Config] Data directory: {dataDirectory ?? "auto-detect"}");
 
             LoadDungeons(dataDirectory, "dungeon_flags_snes9x.json");

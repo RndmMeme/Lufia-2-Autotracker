@@ -158,3 +158,29 @@ v1.4.9 Update - Diagnostics, State Safety & Flexible Layouts
     *   Added a persistent View option to hide active human party members from the Characters canvas.
 *   **Windows**:
     *   Floating docks now use normal window flags and no longer behave as parent-owned tool windows.
+
+v1.4.10 Update - Consistent Canvas Resizing
+-------------------------------------------
+*   Replaced transform-based Character/Maiden shrinking with real-size scrollable canvases.
+*   Made Character/Maiden font and icon controls affect the rendered content while docked.
+*   Recomputed cell geometry after font, icon, and location-text changes to prevent clipping.
+*   Made reset/restored picture positions honor the active snap grid.
+*   Replaced the shared Qt dock-splitter tree with a free panel workspace.
+*   Every panel now has independent position, width, and height; resizing one cannot resize another.
+*   Retained panel dragging, pinning, hiding/restoring, detach/snap-back, and persistent geometry.
+*   Removed the 350 px width caps from Items and Hints.
+*   Added a separate Canvas Grid with independent visibility, size, and panel move/resize snapping.
+*   Grid-size selection now changes only the grid ruler and never reflows or resizes existing content.
+*   Added Layout > Reset Window Layout for rebuilding the factory panel arrangement.
+
+v1.4.11 Update - Character Clarity & Focused Menus
+---------------------------------------------------
+*   **Release status**: latest experimental build; stable designation pending broader emulator and UI validation.
+*   Obtained characters now remain fully lit whether active or inactive; location notes carry recruitment context.
+*   Active party members retained after a one-shot Sync can be manually toggled off/on like other characters.
+*   Continuous Auto tracking continues to restore live emulator character state on subsequent snapshots.
+*   Renamed Edit Layout to Edit Icon Positions to accurately describe its scope.
+*   Grouped Layout into Icon Placement and Panel Arrangement.
+*   Grouped View into Panel Controls, Character Display, and Map Sprites.
+*   Grouped Style into Panel Appearance, Player Marker, and Map Locations.
+*   Reworked the in-app User Guide for the current menus, grids, independent panels, character behavior, syncing, and persistence.
