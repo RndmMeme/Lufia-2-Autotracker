@@ -1,8 +1,18 @@
-# Lufia 2 Auto Tracker v1.4.6
+# Lufia 2 Auto Tracker v1.4.7
 
 A modern, robust manual & auto tracker for **Lufia 2: Rise of the Sinistrals** (SNES), fully refactored in **Python (PyQt6)**.
 
 ![Lufia 2 Tracker](https://img.shields.io/badge/Lufia%202-Tracker-blue) ![PyQt6](https://img.shields.io/badge/Built%20With-PyQt6-green) ![Theme](https://img.shields.io/badge/Theme-Dark-black)
+
+## ✨ New in v1.4.7
+
+*   **One Canonical Memory Map**: Every core tracker read now uses a Lufia II WRAM offset instead of an emulator-specific host address.
+*   **Root-Based Resolution**: Emulator discovery produces one verified WRAM root and one optional ROM root; all addresses are resolved from those roots.
+*   **Single-Anchor Fallbacks**: Historical Snes9x addresses are reduced to root hints. One known gold address reconstructs the WRAM root, which must still pass full validation.
+*   **ROM Independence**: ROM discovery uses game signatures and sprite-table validation without assuming a fixed distance from Snes9x WRAM.
+*   **Reproducible Diagnostics**: The live verifier can force root-hint-only attachment to test fallback behavior independently.
+
+See [MEMORY_ARCHITECTURE.md](MEMORY_ARCHITECTURE.md) for the address model and contribution rules.
 
 ## ✨ New in v1.4.6
 

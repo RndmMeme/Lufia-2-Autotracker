@@ -1,0 +1,14 @@
+{
+  "root_hints": [
+    {
+      "name": "Snes9x 1.62.3 standard",
+      "process_names": ["snes9x-x64"],
+      "gold_process_offset": "0xA32D9E"
+    },
+    {
+      "name": "Snes9x 1.62.3 NWA",
+      "process_names": ["snes9x-x64", "snes9x"],
+      "gold_process_offset": "0xE2CF52"
+    }
+  ]
+}

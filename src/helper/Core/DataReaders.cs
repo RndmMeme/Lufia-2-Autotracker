@@ -9,24 +9,21 @@ namespace Lufia2AutoTracker.Helper.Core
 {
     public class DataReaders
     {
-        private IntPtr _processHandle;
-        private IntPtr _baseAddress;
-        private MemoryProfile _profile;
+        private readonly IntPtr _processHandle;
+        private readonly MemoryProfile _profile;
         private int _requiredReadFailures;
 
         public bool LastRequiredReadSucceeded { get; private set; } = true;
 
-        public DataReaders(IntPtr processHandle, IntPtr baseAddress, MemoryProfile profile)
+        public DataReaders(IntPtr processHandle, MemoryProfile profile)
         {
             _processHandle = processHandle;
-            _baseAddress = baseAddress;
             _profile = profile;
         }
 
-        private byte[] ReadMemory(int offset, int size, bool required = true)
+        private byte[] ReadWram(int offset, int size, bool required = true)
         {
-            IntPtr baseAddr = _profile.ScannedWramBase != IntPtr.Zero ? _profile.ScannedWramBase : _baseAddress;
-            IntPtr address = (IntPtr)((long)baseAddr + offset);
+            IntPtr address = _profile.ResolveWram(offset);
             byte[] buffer = new byte[size];
             IntPtr bytesRead;
             if (NativeMethods.ReadProcessMemory(_processHandle, address, buffer, size, out bytesRead) &&
@@ -43,9 +40,7 @@ namespace Lufia2AutoTracker.Helper.Core
             return new byte[size]; // Return empty on failure
         }
         
-        private byte ReadByte(int offset) => ReadMemory(offset, 1)[0];
-        private ushort ReadUShort(int offset) => BitConverter.ToUInt16(ReadMemory(offset, 2), 0);
-        private uint ReadUInt(int offset, bool required = true) => BitConverter.ToUInt32(ReadMemory(offset, 4, required), 0);
+        private byte ReadByte(int offset) => ReadWram(offset, 1)[0];
 
         public GameState ReadGameState()
         {
@@ -72,10 +67,10 @@ namespace Lufia2AutoTracker.Helper.Core
         private List<string> ReadInventory()
         {
             var obtained = new List<string>();
-            var invData = ReadMemory(_profile.InventoryStart, _profile.InventoryEnd - _profile.InventoryStart);
+            var invData = ReadWram(Lufia2MemoryMap.Wram.InventoryStart, Lufia2MemoryMap.Wram.InventoryLength);
             
             // Read Scenario Block (used for Special items bitmask)
-            var scenarioData = ReadMemory(_profile.ScenarioStart, _profile.ScenarioEnd - _profile.ScenarioStart + 1);
+            var scenarioData = ReadWram(Lufia2MemoryMap.Wram.ScenarioStart, Lufia2MemoryMap.Wram.ScenarioLength);
             // v1.3: reversed_memory_value = memory_value[::-1]
             Array.Reverse(scenarioData); 
             string binaryString = string.Join("", scenarioData.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
@@ -118,7 +113,7 @@ namespace Lufia2AutoTracker.Helper.Core
         private List<string> ReadScenario()
         {
             var obtained = new List<string>();
-            var scenarioData = ReadMemory(_profile.ScenarioStart, _profile.ScenarioEnd - _profile.ScenarioStart + 1);
+            var scenarioData = ReadWram(Lufia2MemoryMap.Wram.ScenarioStart, Lufia2MemoryMap.Wram.ScenarioLength);
             Array.Reverse(scenarioData);
             string binaryString = string.Join("", scenarioData.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
 
@@ -165,9 +160,9 @@ namespace Lufia2AutoTracker.Helper.Core
         private List<string> ReadCharacters()
         {
             var chars = new List<string>();
-            foreach (var offset in _profile.CharacterSlots)
+            for (int slot = 0; slot < Lufia2MemoryMap.Wram.PartyCount; slot++)
             {
-                byte id = ReadByte(offset);
+                byte id = ReadByte(Lufia2MemoryMap.Wram.PartyStart + slot);
                 string name = GameData.GetCharacterName(id);
                 if (name != "Empty" && name != "Unknown") chars.Add(name);
             }
@@ -177,8 +172,8 @@ namespace Lufia2AutoTracker.Helper.Core
         public List<string> ReadCapsules()
         {
             var capsules = new List<string>();
-            int start = _profile.CapsuleSlotsStart;
-            int end = _profile.CapsuleSlotsEnd;
+            int start = Lufia2MemoryMap.Wram.CapsuleStart;
+            int end = start + Lufia2MemoryMap.Wram.CapsuleCount - 1;
             List<string> capsuleNames = GetCapsuleNames(); 
             
             for (int addr = start; addr <= end; addr++)
@@ -196,35 +191,19 @@ namespace Lufia2AutoTracker.Helper.Core
         public List<string> ReadCapsuleSpriteValues()
         {
             var values = new List<string>();
-            long baseOffset;
-
-            if (_profile.ScannedRomBase != IntPtr.Zero)
+            if (!_profile.HasRom)
             {
-                // Use Scanned Absolute Address
-                baseOffset = (long)_profile.ScannedRomBase + _profile.CapsuleSpriteOffset;
-            }
-            else if (_profile.ScannedWramBase != IntPtr.Zero)
-            {
-                // A dynamically discovered WRAM block is sufficient for core
-                // tracking. Without a verified ROM block, sprite metadata is
-                // intentionally unavailable rather than guessed.
                 return values;
             }
-            else
-            {
-                // Fallback to Pointer Logic (Relative to Base)
-                // 1:1 logic: Add ROM Start + Offset (User request)
-                uint romStart = ReadUInt(_profile.PointerBaseAddress, required: false);
-                baseOffset = romStart + _profile.CapsuleSpriteOffset;
-            }
 
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < Lufia2MemoryMap.Rom.CapsuleSpriteCount; i++)
             {
-                // Each sprite definition is 10 bytes apart (Confirmed by Debug Log: A502 at 0, 0B0D at 10)
-                long addr = baseOffset + (i * 10);
+                IntPtr address = _profile.ResolveRom(
+                    Lufia2MemoryMap.Rom.CapsuleSpriteTable +
+                    i * Lufia2MemoryMap.Rom.CapsuleSpriteStride);
                 byte[] bytes = new byte[2];
                 IntPtr bytesRead;
-                NativeMethods.ReadProcessMemory(_processHandle, (IntPtr)addr, bytes, 2, out bytesRead);
+                NativeMethods.ReadProcessMemory(_processHandle, address, bytes, 2, out bytesRead);
 
                 // Hex format "A502" upper case
                 string hex = $"{bytes[0]:X2}{bytes[1]:X2}";
@@ -241,20 +220,20 @@ namespace Lufia2AutoTracker.Helper.Core
         // --- Position Logic ---
         private (int X, int Y, string Mode) ReadPosition()
         {
-            byte mode = ReadByte(_profile.TransportFlag);
+            byte mode = ReadByte(Lufia2MemoryMap.Wram.Transport);
             int xFast, xSlow, yFast, ySlow;
             string modeStr = "walk";
 
             if (mode == 0xFF) // Ship / Airship
             {
                 modeStr = "ship";
-                xFast = _profile.ShipXFast; xSlow = _profile.ShipXSlow;
-                yFast = _profile.ShipYFast; ySlow = _profile.ShipYSlow;
+                xFast = Lufia2MemoryMap.Wram.ShipXLow; xSlow = Lufia2MemoryMap.Wram.ShipXHigh;
+                yFast = Lufia2MemoryMap.Wram.ShipYLow; ySlow = Lufia2MemoryMap.Wram.ShipYHigh;
             }
             else // Walk (0x00) or other
             {
-                xFast = _profile.WalkXFast; xSlow = _profile.WalkXSlow;
-                yFast = _profile.WalkYFast; ySlow = _profile.WalkYSlow;
+                xFast = Lufia2MemoryMap.Wram.WalkXLow; xSlow = Lufia2MemoryMap.Wram.WalkXHigh;
+                yFast = Lufia2MemoryMap.Wram.WalkYLow; ySlow = Lufia2MemoryMap.Wram.WalkYHigh;
             }
 
             int x = (ReadByte(xSlow) << 8) | ReadByte(xFast);
@@ -266,9 +245,9 @@ namespace Lufia2AutoTracker.Helper.Core
         private List<string> ReadDungeonFlags()
         {
             var cleared = new List<string>();
-            int start = _profile.DungeonFlagStart;
-            int size = _profile.DungeonFlagEnd - start + 1;
-            byte[] flags = ReadMemory(start, size);
+            int start = Lufia2MemoryMap.Wram.DungeonFlagsStart;
+            int size = Lufia2MemoryMap.Wram.DungeonFlagsLength;
+            byte[] flags = ReadWram(start, size);
 
             foreach (var d in GameData.Dungeons)
             {
@@ -301,7 +280,7 @@ namespace Lufia2AutoTracker.Helper.Core
             var logs = new List<Dictionary<string, string>>();
             try
             {
-                long start, end;
+                long start;
                 int size;
                 
                 if (_overrideSpoilerLogAddress != IntPtr.Zero)
@@ -311,18 +290,8 @@ namespace Lufia2AutoTracker.Helper.Core
                     // Let's assume a reasonable size, e.g. 50KB.
                     start = (long)_overrideSpoilerLogAddress;
                     size = 50000;
-                    end = start + size;
                 }
-                else
-                {
-                    if (_profile.PointerBaseAddress == 0) return logs;
-                    uint ptrVal = ReadUInt(_profile.PointerBaseAddress, required: false);
-                    if (ptrVal == 0) return logs; // Pointer logic failed or disabled
-
-                    start = ptrVal + _profile.SpoilerLogOffsetStart;
-                    end = ptrVal + _profile.SpoilerLogOffsetEnd;
-                    size = (int)(end - start);
-                }
+                else return logs;
                 
                 if (size <= 0 || size > 500000) 
                 {

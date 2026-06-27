@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 
 namespace Lufia2AutoTracker.Helper.Core
 {
@@ -20,19 +19,41 @@ namespace Lufia2AutoTracker.Helper.Core
             failures += Check("duplicate party members weaken WRAM fixture", () =>
             {
                 byte[] snapshot = CreateValidSnapshot();
-                snapshot[0x2D90] = snapshot[0x2D8F];
+                snapshot[Lufia2MemoryMap.Wram.PartyStart + 1] =
+                    snapshot[Lufia2MemoryMap.Wram.PartyStart];
                 int score = MemoryScanner.ScoreWramSnapshot(snapshot, out _);
                 return score < 80;
             });
 
-            failures += Check("dynamic profile uses canonical WRAM offsets", () =>
+            failures += Check("memory profile resolves canonical roots", () =>
             {
                 IntPtr wram = (IntPtr)0x12345000;
-                MemoryProfile profile = MemoryProfile.CreateFromOffsets(wram, IntPtr.Zero);
-                return profile.ScannedWramBase == wram &&
-                       profile.Gold == 0x2D9E &&
-                       profile.InventoryStart == 0x2DA1 &&
-                       profile.ScannedRomBase == IntPtr.Zero;
+                MemoryProfile profile = MemoryProfile.CreateFromRoots(wram, IntPtr.Zero);
+                return profile.WramBase == wram &&
+                       profile.ResolveWram(Lufia2MemoryMap.Wram.Gold) ==
+                           (IntPtr)((long)wram + Lufia2MemoryMap.Wram.Gold) &&
+                       !profile.HasRom;
+            });
+
+            failures += Check("legacy hints reconstruct the same canonical WRAM root", () =>
+            {
+                IntPtr processBase = new IntPtr(0x140000000L);
+                var standard = new MemoryRootHint { GoldProcessOffset = 0xA32D9E };
+                var nwa = new MemoryRootHint { GoldProcessOffset = 0xE2CF52 };
+                IntPtr standardRoot = standard.ResolveWramRoot(processBase);
+                IntPtr nwaRoot = nwa.ResolveWramRoot(processBase);
+                return standardRoot == (IntPtr)((long)processBase + 0xA30000) &&
+                       nwaRoot == (IntPtr)((long)processBase + 0xE2A1B4) &&
+                       (long)standardRoot + Lufia2MemoryMap.Wram.Gold == (long)processBase + 0xA32D9E &&
+                       (long)nwaRoot + Lufia2MemoryMap.Wram.Gold == (long)processBase + 0xE2CF52;
+            });
+
+            failures += Check("SNES WRAM addresses round-trip through canonical offsets", () =>
+            {
+                int busAddress = 0x7E2D9E;
+                int offset = Lufia2MemoryMap.Wram.FromSnesAddress(busAddress);
+                return offset == Lufia2MemoryMap.Wram.Gold &&
+                       Lufia2MemoryMap.Wram.ToSnesAddress(offset) == busAddress;
             });
 
             failures += Check("emulator discovery aliases are registered", () =>
@@ -41,11 +62,11 @@ namespace Lufia2AutoTracker.Helper.Core
                 ProcessScanner.IsKnownEmulatorName("ares") &&
                 ProcessScanner.IsKnownEmulatorName("EmuHawk"));
 
-            failures += Check("configured emulator profiles resolve", () =>
+            failures += Check("configured emulator root hints resolve", () =>
             {
                 string? path = ConfigLoader.ResolveConfigPath(dataDirectory);
                 var config = ConfigLoader.Load(dataDirectory);
-                return path != null && File.Exists(path) && config != null && config.Values.Sum(list => list.Count) >= 2;
+                return path != null && File.Exists(path) && config != null && config.root_hints.Count >= 2;
             });
 
             failures += Check("dungeon mapping loads", () =>
@@ -59,15 +80,15 @@ namespace Lufia2AutoTracker.Helper.Core
 
         private static byte[] CreateValidSnapshot()
         {
-            byte[] snapshot = new byte[0x3801];
-            snapshot[0x2D9E] = 0x39;
-            snapshot[0x2D9F] = 0x30;
-            snapshot[0x2DA0] = 0x00;
-            snapshot[0x2D8F] = 0x00;
-            snapshot[0x2D90] = 0x01;
-            snapshot[0x2D91] = 0xFF;
-            snapshot[0x2D92] = 0xFF;
-            snapshot[0x2CF5] = 0x00;
+            byte[] snapshot = new byte[Lufia2MemoryMap.Wram.ShipYHigh + 1];
+            snapshot[Lufia2MemoryMap.Wram.Gold] = 0x39;
+            snapshot[Lufia2MemoryMap.Wram.Gold + 1] = 0x30;
+            snapshot[Lufia2MemoryMap.Wram.Gold + 2] = 0x00;
+            snapshot[Lufia2MemoryMap.Wram.PartyStart] = 0x00;
+            snapshot[Lufia2MemoryMap.Wram.PartyStart + 1] = 0x01;
+            snapshot[Lufia2MemoryMap.Wram.PartyStart + 2] = 0xFF;
+            snapshot[Lufia2MemoryMap.Wram.PartyStart + 3] = 0xFF;
+            snapshot[Lufia2MemoryMap.Wram.Transport] = 0x00;
             return snapshot;
         }
 

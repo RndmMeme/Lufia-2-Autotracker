@@ -108,3 +108,21 @@ v1.4.6 Update - Emulator Discovery & Recovery
     *   Added structured helper status messages for searching, probing, attachment, loss, and errors.
 *   **Verification**:
     *   Added deterministic helper self-tests for WRAM validation, dynamic profiles, configuration loading, and dungeon mappings.
+
+v1.4.7 Update - Canonical Memory Roots
+--------------------------------------
+*   **One Game Memory Map**:
+    *   Centralized every WRAM and ROM offset in `Lufia2MemoryMap`.
+    *   All tracker reads now resolve from a verified WRAM root and optional ROM root.
+    *   Removed emulator-specific field addresses from the runtime read path.
+*   **Fallback Simplification**:
+    *   Replaced full emulator profiles with single-address root hints.
+    *   Standard and NWA Snes9x hints reconstruct the WRAM root from the known gold address and then use the canonical map.
+    *   Retained the original curated address table as archival reference only.
+*   **ROM Portability**:
+    *   Removed the fixed Snes9x WRAM-to-ROM distance guess.
+    *   ROM roots now come from game signatures and capsule-table validation across all supported layouts.
+*   **Verification**:
+    *   Added SNES bus-address conversion and root-resolution self-tests.
+    *   Added `--root-hints-only` to the live verification harness.
+    *   Re-verified standard Snes9x 1.62.3, Snes9x 1.62.3-nwa, and bsnes-plus v05 with real state payloads.

@@ -7,24 +7,24 @@ namespace Lufia2AutoTracker.Helper.Core
 {
     public static class ConfigLoader
     {
-        private const string ConfigFileName = "emulator_addresses.json";
+        private const string ConfigFileName = "emulator_root_hints.json";
 
-        public static Dictionary<string, List<EmulatorConfig>>? Load(string? dataDirectory = null)
+        public static RootHintDocument? Load(string? dataDirectory = null)
         {
             string? path = ResolveConfigPath(dataDirectory);
             if (path == null)
             {
-                Console.WriteLine("[Config] emulator_addresses.json was not found.");
+                Console.WriteLine($"[Config] {ConfigFileName} was not found; using built-in root hints.");
                 return null;
             }
 
             try
             {
                 string json = File.ReadAllText(path);
-                var result = JsonSerializer.Deserialize<Dictionary<string, List<EmulatorConfig>>>(json,
+                var result = JsonSerializer.Deserialize<RootHintDocument>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                Console.WriteLine($"[Config] Loaded emulator profiles from {path}");
+                Console.WriteLine($"[Config] Loaded emulator root hints from {path}");
                 return result;
             }
             catch (Exception ex)
@@ -67,32 +67,15 @@ namespace Lufia2AutoTracker.Helper.Core
         }
     }
 
-    public sealed class EmulatorConfig
+    public sealed class RootHintDocument
     {
-        public string name { get; set; } = "Unnamed profile";
-        public string pointer_base_address { get; set; } = "0x0";
-        public string gold_address { get; set; } = "0x0";
-        public List<string> character_slots { get; set; } = new();
-        public List<string> capsule_slots_start { get; set; } = new();
-        public List<string> capsule_slots_end { get; set; } = new();
-        public List<string> inventory_range { get; set; } = new();
-        public List<string> scenario_range { get; set; } = new();
-        public string shop_offset { get; set; } = "0x0";
-        public string capsule_sprite_offset { get; set; } = "0x0";
-        public string map_address { get; set; } = "0x0";
-        public string spoiler_log_offset_start { get; set; } = "0x0";
-        public string spoiler_log_offset_end { get; set; } = "0x0";
-        public string dungeon_flag_start { get; set; } = "0x0";
-        public string dungeon_flag_end { get; set; } = "0x0";
-        public string dungeon_flag_addresses { get; set; } = "dungeon_flags_snes9x.json";
-        public string transport_flag { get; set; } = "0x0";
-        public string ship_x_fast_address { get; set; } = "0x0";
-        public string ship_x_slow_address { get; set; } = "0x0";
-        public string ship_y_fast_address { get; set; } = "0x0";
-        public string ship_y_slow_address { get; set; } = "0x0";
-        public string walk_x_fast_address { get; set; } = "0x0";
-        public string walk_x_slow_address { get; set; } = "0x0";
-        public string walk_y_fast_address { get; set; } = "0x0";
-        public string walk_y_slow_address { get; set; } = "0x0";
+        public List<RootHintConfig> root_hints { get; set; } = new();
+    }
+
+    public sealed class RootHintConfig
+    {
+        public string name { get; set; } = "Unnamed root hint";
+        public List<string> process_names { get; set; } = new();
+        public string gold_process_offset { get; set; } = "0x0";
     }
 }

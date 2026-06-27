@@ -1,4 +1,4 @@
-"""Read-only live verification harness for the v1.4.6 emulator helper."""
+"""Read-only live verification harness for the current emulator helper."""
 
 import argparse
 import json
@@ -17,12 +17,19 @@ from core.helper_interface import HelperInterface  # noqa: E402
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pid", type=int, help="Probe only this emulator process ID")
+    parser.add_argument(
+        "--root-hints-only",
+        action="store_true",
+        help="Skip dynamic WRAM scanning and verify the configured fallback roots",
+    )
     parser.add_argument("--timeout", type=float, default=90, help="Maximum seconds to wait")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     messages = []
     helper_args = ["--pid", str(args.pid)] if args.pid else []
+    if args.root_hints_only:
+        helper_args.append("--root-hints-only")
     helper = HelperInterface(messages.append, helper_args)
     helper.start()
 

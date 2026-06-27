@@ -15,7 +15,6 @@ namespace Lufia2AutoTracker.Helper
         {
             public required Process Process { get; init; }
             public required MemoryProfile Profile { get; init; }
-            public required IntPtr ProcessBase { get; init; }
             public IntPtr SpoilerAddress { get; init; }
         }
 
@@ -25,16 +24,17 @@ namespace Lufia2AutoTracker.Helper
             int? requestedProcessId = int.TryParse(GetOption(args, "--pid"), out int parsedProcessId)
                 ? parsedProcessId
                 : null;
+            bool rootHintsOnly = args.Contains("--root-hints-only", StringComparer.OrdinalIgnoreCase);
             if (args.Contains("--self-test", StringComparer.OrdinalIgnoreCase))
             {
                 return SelfTest.Run(dataDirectory);
             }
 
-            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.6");
+            Console.WriteLine("Lufia 2 Auto Tracker Helper v1.4.7");
             Console.WriteLine($"[Config] Data directory: {dataDirectory ?? "auto-detect"}");
 
             LoadDungeons(dataDirectory, "dungeon_flags_snes9x.json");
-            List<MemoryProfile> configuredProfiles = BuildConfiguredProfiles(ConfigLoader.Load(dataDirectory));
+            List<MemoryRootHint> configuredRootHints = BuildConfiguredRootHints(ConfigLoader.Load(dataDirectory));
 
             var client = new TrackerClient();
             client.Connect();
@@ -83,7 +83,11 @@ namespace Lufia2AutoTracker.Helper
                             process = null;
                         }
                         client.SendStatus("scanning", "Searching for a running Lufia II emulator...");
-                        Attachment? attachment = FindAttachment(configuredProfiles, client, requestedProcessId);
+                        Attachment? attachment = FindAttachment(
+                            configuredRootHints,
+                            client,
+                            requestedProcessId,
+                            rootHintsOnly);
                         if (attachment == null)
                         {
                             if ((DateTime.UtcNow - lastWaitingStatus).TotalSeconds >= 5)
@@ -97,7 +101,7 @@ namespace Lufia2AutoTracker.Helper
 
                         process = attachment.Process;
                         currentProfile = attachment.Profile;
-                        reader = new DataReaders(process.Handle, attachment.ProcessBase, currentProfile);
+                        reader = new DataReaders(process.Handle, currentProfile);
                         if (attachment.SpoilerAddress != IntPtr.Zero)
                         {
                             reader.SetSpoilerLogAddress(attachment.SpoilerAddress);
@@ -111,7 +115,7 @@ namespace Lufia2AutoTracker.Helper
                         Console.WriteLine($"[Tracker] Attached to {process.ProcessName} (PID {process.Id}) with {currentProfile.Name}");
                         client.SendStatus(
                             "attached",
-                            currentProfile.ScannedRomBase != IntPtr.Zero
+                            currentProfile.HasRom
                                 ? "Auto-tracker attached with WRAM and ROM support."
                                 : "Auto-tracker attached with WRAM support; ROM-only features are unavailable.",
                             process.ProcessName,
@@ -227,9 +231,10 @@ namespace Lufia2AutoTracker.Helper
         }
 
         private static Attachment? FindAttachment(
-            List<MemoryProfile> configuredProfiles,
+            List<MemoryRootHint> configuredRootHints,
             TrackerClient client,
-            int? requestedProcessId)
+            int? requestedProcessId,
+            bool rootHintsOnly)
         {
             IReadOnlyList<Process> processes;
             if (requestedProcessId.HasValue)
@@ -260,15 +265,18 @@ namespace Lufia2AutoTracker.Helper
                         client.SendStatus("probing", $"Checking {candidateProcess.ProcessName} (PID {candidateProcess.Id})...", candidateProcess.ProcessName);
                         IntPtr processBase = candidateProcess.MainModule?.BaseAddress ?? IntPtr.Zero;
 
-                        List<WramCandidate> wramCandidates = MemoryScanner.ScanForWram(candidateProcess);
+                        List<WramCandidate> wramCandidates = rootHintsOnly
+                            ? new List<WramCandidate>()
+                            : MemoryScanner.ScanForWram(candidateProcess);
                         foreach (WramCandidate wram in wramCandidates.OrderByDescending(item => item.Score))
                         {
                             IntPtr? romBase = MemoryScanner.ScanForRom(candidateProcess, wram.Address);
-                            MemoryProfile profile = MemoryProfile.CreateFromOffsets(
+                            MemoryProfile profile = MemoryProfile.CreateFromRoots(
                                 wram.Address,
-                                romBase ?? IntPtr.Zero);
+                                romBase ?? IntPtr.Zero,
+                                candidateProcess.ProcessName);
 
-                            if (!MemoryScanner.ValidateKnownProfile(candidateProcess, processBase, profile, out string validation))
+                            if (!MemoryScanner.ValidateProfile(candidateProcess, profile, out string validation))
                             {
                                 Console.WriteLine($"[Tracker] Rejected scanned profile for PID {candidateProcess.Id}: {validation}");
                                 continue;
@@ -278,30 +286,42 @@ namespace Lufia2AutoTracker.Helper
                             attachedProcess = candidateProcess;
                             return new Attachment {
                                 Process = candidateProcess,
-                                ProcessBase = processBase,
                                 Profile = profile,
                                 SpoilerAddress = spoilerAddress
                             };
                         }
 
-                        IEnumerable<MemoryProfile> fallbackProfiles = configuredProfiles
-                            .Concat(MemoryProfile.KnownProfiles)
-                            .Where(profile => ProcessNameMatches(candidateProcess.ProcessName, profile.ProcessName));
+                        IEnumerable<MemoryRootHint> fallbackHints = configuredRootHints
+                            .Concat(MemoryProfile.BuiltInRootHints)
+                            .Where(hint => ProcessNameMatches(candidateProcess.ProcessName, hint.ProcessName));
 
-                        foreach (MemoryProfile profile in fallbackProfiles)
+                        foreach (MemoryRootHint hint in fallbackHints)
                         {
-                            if (!MemoryScanner.ValidateKnownProfile(candidateProcess, processBase, profile, out string validation))
+                            IntPtr wramRoot = hint.ResolveWramRoot(processBase);
+                            MemoryProfile rootProfile = MemoryProfile.CreateFromRoots(
+                                wramRoot,
+                                IntPtr.Zero,
+                                candidateProcess.ProcessName,
+                                $"Canonical root from {hint.Name}");
+
+                            if (!MemoryScanner.ValidateProfile(candidateProcess, rootProfile, out string validation))
                             {
-                                Console.WriteLine($"[Tracker] Rejected fallback profile '{profile.Name}': {validation}");
+                                Console.WriteLine($"[Tracker] Rejected root hint '{hint.Name}': {validation}");
                                 continue;
                             }
 
+                            IntPtr? romBase = MemoryScanner.ScanForRom(candidateProcess, wramRoot);
+                            MemoryProfile profile = MemoryProfile.CreateFromRoots(
+                                wramRoot,
+                                romBase ?? IntPtr.Zero,
+                                candidateProcess.ProcessName,
+                                $"Canonical root from {hint.Name}");
+                            IntPtr spoilerAddress = MemoryScanner.ScanForSpoilerLog(candidateProcess) ?? IntPtr.Zero;
                             attachedProcess = candidateProcess;
                             return new Attachment {
                                 Process = candidateProcess,
-                                ProcessBase = processBase,
                                 Profile = profile,
-                                SpoilerAddress = IntPtr.Zero
+                                SpoilerAddress = spoilerAddress
                             };
                         }
                     }
@@ -322,55 +342,33 @@ namespace Lufia2AutoTracker.Helper
             return null;
         }
 
-        private static List<MemoryProfile> BuildConfiguredProfiles(
-            Dictionary<string, List<EmulatorConfig>>? loadedConfig)
+        private static List<MemoryRootHint> BuildConfiguredRootHints(RootHintDocument? document)
         {
-            var profiles = new List<MemoryProfile>();
-            if (loadedConfig == null) return profiles;
+            var hints = new List<MemoryRootHint>();
+            if (document == null) return hints;
 
-            foreach (var processEntry in loadedConfig)
+            foreach (RootHintConfig config in document.root_hints)
             {
-                foreach (EmulatorConfig config in processEntry.Value)
+                try
                 {
-                    try
+                    int goldProcessOffset = ParseHex(config.gold_process_offset);
+                    if (goldProcessOffset <= 0) throw new InvalidDataException("gold_process_offset must be positive");
+                    foreach (string processName in config.process_names)
                     {
-                        profiles.Add(new MemoryProfile {
+                        hints.Add(new MemoryRootHint {
                             Name = config.name,
-                            ProcessName = Path.GetFileNameWithoutExtension(processEntry.Key),
-                            PointerBaseAddress = ParseHex(config.pointer_base_address),
-                            Gold = ParseHex(config.gold_address),
-                            InventoryStart = ParseHex(config.inventory_range.ElementAtOrDefault(0)),
-                            InventoryEnd = ParseHex(config.inventory_range.ElementAtOrDefault(1)),
-                            ScenarioStart = ParseHex(config.scenario_range.ElementAtOrDefault(0)),
-                            ScenarioEnd = ParseHex(config.scenario_range.ElementAtOrDefault(1)),
-                            CharacterSlots = config.character_slots.Select(ParseHex).ToArray(),
-                            CapsuleSlotsStart = ParseHex(config.capsule_slots_start.ElementAtOrDefault(0)),
-                            CapsuleSlotsEnd = ParseHex(config.capsule_slots_end.ElementAtOrDefault(0)),
-                            SpoilerLogOffsetStart = ParseHex(config.spoiler_log_offset_start),
-                            SpoilerLogOffsetEnd = ParseHex(config.spoiler_log_offset_end),
-                            DungeonFlagStart = ParseHex(config.dungeon_flag_start),
-                            DungeonFlagEnd = ParseHex(config.dungeon_flag_end),
-                            TransportFlag = ParseHex(config.transport_flag),
-                            ShipXFast = ParseHex(config.ship_x_fast_address),
-                            ShipXSlow = ParseHex(config.ship_x_slow_address),
-                            ShipYFast = ParseHex(config.ship_y_fast_address),
-                            ShipYSlow = ParseHex(config.ship_y_slow_address),
-                            WalkXFast = ParseHex(config.walk_x_fast_address),
-                            WalkXSlow = ParseHex(config.walk_x_slow_address),
-                            WalkYFast = ParseHex(config.walk_y_fast_address),
-                            WalkYSlow = ParseHex(config.walk_y_slow_address),
-                            CapsuleSpriteOffset = ParseHex(config.capsule_sprite_offset),
-                            MapAddress = ParseHex(config.map_address)
+                            ProcessName = Path.GetFileNameWithoutExtension(processName),
+                            GoldProcessOffset = goldProcessOffset
                         });
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[Config] Ignoring invalid profile '{config.name}': {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Config] Ignoring invalid root hint '{config.name}': {ex.Message}");
                 }
             }
 
-            return profiles;
+            return hints;
         }
 
         private static int ParseHex(string? value)

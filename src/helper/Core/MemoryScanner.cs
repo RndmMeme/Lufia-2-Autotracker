@@ -20,12 +20,12 @@ namespace Lufia2AutoTracker.Helper.Core
     {
         private const int ScanChunkSize = 4 * 1024 * 1024;
         private const int MaxSignatureMatches = 128;
-        private const int WramSnapshotSize = 0x3801;
+        private const int WramSnapshotSize = Lufia2MemoryMap.Wram.ShipYHigh + 1;
 
         private static readonly (string Name, byte[] Bytes, int Offset)[] WramSignatures = {
-            ("SSelan", new byte[]{0x53,0x53,0x65,0x6C,0x61,0x6E}, 0x2F7E),
-            ("AArty",  new byte[]{0x41,0x41,0x72,0x74,0x79},      0x30FE),
-            ("LLexis", new byte[]{0x4C,0x4C,0x65,0x78,0x69,0x73}, 0x3326)
+            ("SSelan", new byte[]{0x53,0x53,0x65,0x6C,0x61,0x6E}, Lufia2MemoryMap.Wram.SelanAnchor),
+            ("AArty",  new byte[]{0x41,0x41,0x72,0x74,0x79},      Lufia2MemoryMap.Wram.ArtyAnchor),
+            ("LLexis", new byte[]{0x4C,0x4C,0x65,0x78,0x69,0x73}, Lufia2MemoryMap.Wram.LexisAnchor)
         };
 
         public static List<IntPtr> ScanForSignature(
@@ -140,15 +140,12 @@ namespace Lufia2AutoTracker.Helper.Core
             return result;
         }
 
-        public static bool ValidateKnownProfile(Process process, IntPtr processBase, MemoryProfile profile, out string reason)
+        public static bool ValidateProfile(Process process, MemoryProfile profile, out string reason)
         {
-            IntPtr memoryBase = profile.ScannedWramBase != IntPtr.Zero ? profile.ScannedWramBase : processBase;
-            int goldOffset = profile.Gold;
-            int partyOffset = profile.CharacterSlots.FirstOrDefault();
-
-            if (!TryRead(process, (IntPtr)((long)memoryBase + goldOffset), 3, out var goldBytes) ||
-                !TryRead(process, (IntPtr)((long)memoryBase + partyOffset), 4, out var party) ||
-                !TryRead(process, (IntPtr)((long)memoryBase + profile.TransportFlag), 1, out var transport))
+            if (!profile.HasWram ||
+                !TryRead(process, profile.ResolveWram(Lufia2MemoryMap.Wram.Gold), 3, out var goldBytes) ||
+                !TryRead(process, profile.ResolveWram(Lufia2MemoryMap.Wram.PartyStart), Lufia2MemoryMap.Wram.PartyCount, out var party) ||
+                !TryRead(process, profile.ResolveWram(Lufia2MemoryMap.Wram.Transport), 1, out var transport))
             {
                 reason = "one or more required addresses were unreadable";
                 return false;
@@ -168,11 +165,11 @@ namespace Lufia2AutoTracker.Helper.Core
             gold = 0;
             if (snapshot.Length < WramSnapshotSize) return 0;
 
-            gold = ReadUInt24(snapshot, 0x2D9E);
+            gold = ReadUInt24(snapshot, Lufia2MemoryMap.Wram.Gold);
             bool validGold = gold <= 9_999_999;
-            bool validParty = IsValidParty(snapshot, 0x2D8F, out int memberCount);
-            bool validTransport = IsValidTransport(snapshot[0x2CF5]);
-            int zeroCount = CountZeros(snapshot, 0x2DA1, 100);
+            bool validParty = IsValidParty(snapshot, Lufia2MemoryMap.Wram.PartyStart, out int memberCount);
+            bool validTransport = IsValidTransport(snapshot[Lufia2MemoryMap.Wram.Transport]);
+            int zeroCount = CountZeros(snapshot, Lufia2MemoryMap.Wram.InventoryStart, 100);
 
             return ScoreWramValues(validGold, validParty, memberCount, validTransport, zeroCount, 0);
         }
@@ -188,11 +185,11 @@ namespace Lufia2AutoTracker.Helper.Core
         {
             var candidates = new HashSet<long>();
             var romSignatures = new (string Name, byte[] Bytes, int HeaderOffset)[] {
-                ("LUFIA",    new byte[]{0x4C,0x55,0x46,0x49,0x41}, 0xFFC0),
-                ("L2-R",     new byte[]{0x4C,0x32,0x2D,0x52},      0xFFC0),
-                ("L2-",      new byte[]{0x4C,0x32,0x2D},           0xFFC0),
-                ("ESTPOLIS", new byte[]{0x45,0x53,0x54,0x50,0x4F,0x4C,0x49,0x53}, 0xFFC0),
-                ("Lufia II", new byte[]{0x4C,0x75,0x66,0x69,0x61,0x20,0x49,0x49}, 0xFFC0)
+                ("LUFIA",    new byte[]{0x4C,0x55,0x46,0x49,0x41}, Lufia2MemoryMap.Rom.InternalHeader),
+                ("L2-R",     new byte[]{0x4C,0x32,0x2D,0x52},      Lufia2MemoryMap.Rom.InternalHeader),
+                ("L2-",      new byte[]{0x4C,0x32,0x2D},           Lufia2MemoryMap.Rom.InternalHeader),
+                ("ESTPOLIS", new byte[]{0x45,0x53,0x54,0x50,0x4F,0x4C,0x49,0x53}, Lufia2MemoryMap.Rom.InternalHeader),
+                ("Lufia II", new byte[]{0x4C,0x75,0x66,0x69,0x61,0x20,0x49,0x49}, Lufia2MemoryMap.Rom.InternalHeader)
             };
 
             foreach (var signature in romSignatures)
@@ -205,13 +202,6 @@ namespace Lufia2AutoTracker.Helper.Core
                 {
                     candidates.Add((long)location - signature.HeaderOffset);
                 }
-            }
-
-            // Preserve the proven Snes9x neighborhood hint, but only accept it
-            // if the sprite table validator confirms it.
-            if (wramHint.HasValue)
-            {
-                candidates.Add((long)wramHint.Value + 0x22330);
             }
 
             var sorted = wramHint.HasValue
@@ -240,10 +230,10 @@ namespace Lufia2AutoTracker.Helper.Core
         {
             candidate = new WramCandidate { Address = wramBase };
 
-            if (!TryRead(process, (IntPtr)((long)wramBase + 0x2D9E), 3, out var goldBytes) ||
-                !TryRead(process, (IntPtr)((long)wramBase + 0x2D8F), 4, out var party) ||
-                !TryRead(process, (IntPtr)((long)wramBase + 0x2CF5), 1, out var transport) ||
-                !TryRead(process, (IntPtr)((long)wramBase + 0x2DA1), 100, out var inventory))
+            if (!TryRead(process, (IntPtr)((long)wramBase + Lufia2MemoryMap.Wram.Gold), 3, out var goldBytes) ||
+                !TryRead(process, (IntPtr)((long)wramBase + Lufia2MemoryMap.Wram.PartyStart), Lufia2MemoryMap.Wram.PartyCount, out var party) ||
+                !TryRead(process, (IntPtr)((long)wramBase + Lufia2MemoryMap.Wram.Transport), 1, out var transport) ||
+                !TryRead(process, (IntPtr)((long)wramBase + Lufia2MemoryMap.Wram.InventoryStart), 100, out var inventory))
             {
                 return false;
             }
@@ -287,22 +277,26 @@ namespace Lufia2AutoTracker.Helper.Core
                         if (NativeMethods.ReadProcessMemory(process.Handle, chunkAddress, buffer, requested, out var bytesRead))
                         {
                             int available = (int)Math.Min(requested, bytesRead.ToInt64());
-                            for (int i = 0xA9; i < available - 103; i++)
+                            int transportDistance = Lufia2MemoryMap.Wram.Gold - Lufia2MemoryMap.Wram.Transport;
+                            int partyDistance = Lufia2MemoryMap.Wram.Gold - Lufia2MemoryMap.Wram.PartyStart;
+                            int inventoryDistance = Lufia2MemoryMap.Wram.InventoryStart - Lufia2MemoryMap.Wram.Gold;
+                            for (int i = transportDistance; i < available - 103; i++)
                             {
                                 int gold = ReadUInt24(buffer, i);
                                 if (gold > 9_999_999) continue;
 
-                                int partyOffset = i - 15;
+                                int partyOffset = i - partyDistance;
                                 if (!IsValidParty(buffer, partyOffset, out int memberCount)) continue;
 
-                                byte transport = buffer[i - 169];
+                                byte transport = buffer[i - transportDistance];
                                 if (!IsValidTransport(transport)) continue;
 
-                                int zeroCount = CountZeros(buffer, i + 3, Math.Min(100, available - (i + 3)));
+                                int inventoryOffset = i + inventoryDistance;
+                                int zeroCount = CountZeros(buffer, inventoryOffset, Math.Min(100, available - inventoryOffset));
                                 int score = ScoreWramValues(true, true, memberCount, true, zeroCount, 0);
                                 if (score < 70) continue;
 
-                                IntPtr wramBase = (IntPtr)((long)chunkAddress + i - 0x2D9E);
+                                IntPtr wramBase = (IntPtr)((long)chunkAddress + i - Lufia2MemoryMap.Wram.Gold);
                                 candidates.Add(new WramCandidate {
                                     Address = wramBase,
                                     Gold = gold,
@@ -327,7 +321,7 @@ namespace Lufia2AutoTracker.Helper.Core
 
         private static IntPtr CorrectRomBase(Process process, IntPtr romBase)
         {
-            const int capsuleSpriteOffset = 0xBDCB8;
+            const int capsuleSpriteOffset = Lufia2MemoryMap.Rom.CapsuleSpriteTable;
             long expectedTable = (long)romBase + capsuleSpriteOffset;
 
             if (ScoreSpriteTable(process, (IntPtr)expectedTable) >= 5) return romBase;
@@ -360,7 +354,9 @@ namespace Lufia2AutoTracker.Helper.Core
 
         private static int ScoreSpriteTable(Process process, IntPtr address)
         {
-            if (!TryRead(process, address, 62, out var bytes)) return 0;
+            int tableLength =
+                (Lufia2MemoryMap.Rom.CapsuleSpriteCount - 1) * Lufia2MemoryMap.Rom.CapsuleSpriteStride + 2;
+            if (!TryRead(process, address, tableLength, out var bytes)) return 0;
             return ScoreSpriteTable(bytes, 0);
         }
 
@@ -372,9 +368,9 @@ namespace Lufia2AutoTracker.Helper.Core
             };
 
             int score = 0;
-            for (int slot = 0; slot < 7; slot++)
+            for (int slot = 0; slot < Lufia2MemoryMap.Rom.CapsuleSpriteCount; slot++)
             {
-                int index = start + slot * 10;
+                int index = start + slot * Lufia2MemoryMap.Rom.CapsuleSpriteStride;
                 if (index + 1 >= bytes.Length) break;
                 ushort value = (ushort)(bytes[index] | (bytes[index + 1] << 8));
                 if (validIds.Contains(value)) score++;

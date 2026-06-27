@@ -99,12 +99,12 @@ class HelpDialog(QDialog):
         self.add_page("Introduction", f"""
             <h3>Welcome to RndmMeme's Lufia 2 Auto Tracker v{APP_VERSION}!</h3>
             <p>This tracker helps you keep track of your randomizer run with advanced features like auto-tracking, map visualization, and inventory management.</p>
-            <p><b>New in v1.4.6:</b></p>
+            <p><b>New in v1.4.7:</b></p>
             <ul>
-                <li><b>Safer Emulator Discovery:</b> Every candidate process is validated as a live Lufia II instance before attachment.</li>
-                <li><b>WRAM-Only Tracking:</b> Core tracking can run even when an emulator stores ROM data in an unsupported layout.</li>
-                <li><b>Recovery:</b> Invalid memory reads trigger a clean rescan instead of silently producing empty tracker data.</li>
-                <li><b>Status Feedback:</b> The tracker reports whether it is searching, probing, attached, or rescanning.</li>
+                <li><b>Canonical Memory Map:</b> Every core game value is read from one emulator-independent Lufia II WRAM offset.</li>
+                <li><b>Root-Based Resolution:</b> Discovery produces one verified WRAM root and an optional ROM root.</li>
+                <li><b>Single-Anchor Fallback:</b> Historical Snes9x addresses now reconstruct only the WRAM root; all values still use the canonical map.</li>
+                <li><b>Portable ROM Discovery:</b> ROM signatures and table validation replace fixed Snes9x memory-distance assumptions.</li>
             </ul>
         """)
         
@@ -209,7 +209,7 @@ class HelpDialog(QDialog):
                 <li><b>Snes9x-nwa</b> (Split Memory Banks)</li>
                 <li><b>bsnes</b></li>
             </ul>
-            <p><b>How detection works:</b> Executable names are only hints. The tracker scans each candidate and validates Lufia II's WRAM structure before attaching.</p>
+            <p><b>How detection works:</b> Executable names are only hints. The tracker finds and validates the Lufia II WRAM root, then resolves every game value from one canonical map.</p>
             <p>Core inventory, character, dungeon, and position tracking can operate from WRAM alone. Capsule sprite metadata and spoiler-log features additionally require a verified ROM mapping.</p>
             <p>If detection fails, please provide the exact <b>emulator name and version</b> plus the status text shown in the tracker ribbon.</p>
         """)

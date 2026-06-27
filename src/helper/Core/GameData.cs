@@ -15,11 +15,7 @@ namespace Lufia2AutoTracker.Helper.Core
         {
             public string Location { get; set; } = string.Empty;
             public string Flag { get; set; } = string.Empty; // "0x80"
-            public int Address { get; set; } // Raw address from JSON keys?
-            // Issue: JSON keys in dungeon_flags_*.json are ABSOLUTE addresses like "0xA32A96".
-            // My MemoryProfile stores "DungeonFlagStart" = 0xA32A96.
-            // I need to map "0xA32A96" to relative offset 0.
-            // Simplified: Store the absolute address here, DataReader subtracts Start.
+            public int Address { get; set; } // Offset from canonical DungeonFlagsStart.
         }
 
         public static string GetCharacterName(byte id)
@@ -66,10 +62,7 @@ namespace Lufia2AutoTracker.Helper.Core
              new ItemDef { Name="Wind", ObtainedValue="0000 0000 0000 0000 0100 0000" }
         };
 
-        // This list typically comes from dungeon_flags_snes9x.json.
-        // Since we are mirroring logic, we need to supply these.
-        // For brevity in this task, I will include a sample set. 
-        // Ideally, we load this from JSON or have the full hardcoded list.
+        // Loaded from the dungeon flag mapping at helper startup.
         public static List<DungeonDef> Dungeons = new List<DungeonDef>();
 
         public static void LoadDungeons(List<DungeonDef> dungeons)
